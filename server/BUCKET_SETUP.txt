@@ -1,0 +1,29 @@
+IMÁGENES EN RAILWAY
+
+Crear un Storage Bucket en el proyecto de Railway. En el servicio del servidor,
+agregar estas variables, usando las referencias del bucket (reemplazar
+mi-bucket por el nombre del servicio del bucket en el proyecto):
+
+AWS_ENDPOINT_URL=${{mi-bucket.ENDPOINT}}
+AWS_ACCESS_KEY_ID=${{mi-bucket.ACCESS_KEY_ID}}
+AWS_SECRET_ACCESS_KEY=${{mi-bucket.SECRET_ACCESS_KEY}}
+AWS_S3_BUCKET_NAME=${{mi-bucket.BUCKET}}
+AWS_DEFAULT_REGION=${{mi-bucket.REGION}}
+AWS_S3_URL_STYLE=virtual
+
+Usar el nombre S3 de BUCKET, no el nombre visible del servicio.
+Si un bucket antiguo requiere URLs path-style, usar AWS_S3_URL_STYLE=path.
+Para ejecutar localmente, copiar los valores del bucket a server/.env.
+Las credenciales pertenecen exclusivamente al servidor: no van en client,
+variables NEXT_PUBLIC ni en el repositorio.
+
+Reiniciar o desplegar el servidor después de configurarlas. Al iniciar se agregan
+las columnas necesarias en PostgreSQL. Los archivos nuevos se guardan en el
+bucket y la base guarda únicamente sus claves. Las imágenes anteriores en la
+base siguen funcionando; se reemplazan por archivos del bucket al cambiarlas.
+
+Las fotos se validan y convierten a WebP. Máximo: 5 MB por archivo.
+El bucket permanece privado; la API entrega las imágenes públicas de los
+lubricentros activos sin exponer las credenciales.
+
+Referencia: https://docs.railway.com/storage-buckets

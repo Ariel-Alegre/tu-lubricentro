@@ -11,6 +11,10 @@
 .tenant-products-toolbar p { color: #8190a3; font-size: 13px; }
 .tenant-products-toolbar .ant-input-affix-wrapper { width: min(360px, 100%); min-height: 42px; border: 1px solid #dfe6ed; border-radius: 9px; padding: 8px 12px; }
 .tenant-products-table { padding: 0 24px 20px; }
+.tenant-products-table .ant-table { font-family: var(--font-geist-sans), Arial, sans-serif; }
+.tenant-product-cell { display: flex; align-items: center; gap: 16px; }
+.tenant-product-photo-editor { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; }
+.tenant-product-photo-editor p { flex-basis: 100%; color: #8190a3; font-size: 13px; line-height: 1.6; }
 .tenant-product-name { min-width: 0; }
 .tenant-product-name strong { display: block; color: #34475e; font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
 .tenant-product-name span { display: block; color: #8190a3; margin-top: 4px; font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; }

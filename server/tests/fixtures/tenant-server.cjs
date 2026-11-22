@@ -20,7 +20,20 @@ store.findAccountByEmail = async (email) => accounts.find((item) => item.email =
 const images = new Map();
 const services = new Map();
 const products = new Map();
-store.listProducts = async (id) => [...products.values()].filter((item) => item.owner === id).map(({ owner, ...item }) => item);
+const bucket = require('../../src/bucket');
+const objects = new Map();
+bucket.putImage = async (id, kind, image) => { const key = `lubricentros/${id}/${kind}/${require('node:crypto').randomUUID()}.webp`; objects.set(key, image); return key; };
+bucket.getImage = async (key) => objects.get(key);
+bucket.removeImage = async (key) => { objects.delete(key); };
+const publicProduct = ({ owner, key, ...item }) => ({ ...item, hasImage: Boolean(key) });
+store.listProducts = async (id) => [...products.values()].filter((item) => item.owner === id).map(publicProduct);
+store.findOwnedProduct = async (owner, id) => products.get(id)?.owner === owner ? publicProduct(products.get(id)) : null;
+store.saveProductImage = async (account, id, key) => {
+  const item = products.get(id); const owner = await store.findAccountById(account.id);
+  if (!item || item.owner !== account.id || owner.estado !== 'Activo' || owner.auth_version !== account.auth_version) return null;
+  const previousKey = item.key; item.key = key; return { record: publicProduct(item), previousKey };
+};
+store.getProductImage = async (slug, id) => { const account = await store.findAccountBySlug(slug); const item = products.get(id); return account?.estado === 'Activo' && item?.owner === account.id && item.key ? { key: item.key } : null; };
 store.publicProducts = async (slug) => {
   const account = await store.findAccountBySlug(slug);
   return account && account.estado === 'Activo' ? store.listProducts(account.id) : [];
@@ -31,11 +44,11 @@ store.createProduct = async (account, data) => {
 };
 store.updateProduct = async (account, id, data) => {
   const record = products.get(id); if (!record || record.owner !== account.id) return undefined;
-  products.set(id, { ...data, id, owner: account.id }); return { ...data, id };
+  products.set(id, { ...record, ...data }); return publicProduct(products.get(id));
 };
 store.deleteProduct = async (account, id) => {
   const record = products.get(id); if (!record || record.owner !== account.id) return undefined;
-  products.delete(id); return { id };
+  products.delete(id); return { id, _imageKey: record.key };
 };
 store.listServices = async (id) => [...services.values()].filter((item) => item.owner === id).map(({ owner, ...item }) => item);
 store.publicServices = async (slug) => {
@@ -67,9 +80,10 @@ store.findBySlug = async (slug) => {
 store.saveImage = async (id, version, kind, image) => {
   const account = await store.findAccountById(id);
   if (!account || account.estado !== 'Activo' || account.auth_version !== version) return undefined;
-  images.set(`${account.slug}:${kind}`, image);
+  const previousKey = images.get(`${account.slug}:${kind}`)?.key;
+  images.set(`${account.slug}:${kind}`, { key: image });
   account[kind === 'cover' ? 'hasCover' : 'hasProfile'] = true;
-  return publicAccount(account);
+  return { record: publicAccount(account), previousKey };
 };
 store.getImage = async (slug, kind) => {
   const account = await store.findAccountBySlug(slug);

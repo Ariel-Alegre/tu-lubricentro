@@ -1,0 +1,4 @@
+.product-photo { position: relative; width: 68px; aspect-ratio: 1; border: 1px solid #e2e8ef; border-radius: 10px; background: #f7faff; color: #9ab3cc; display: grid; place-items: center; font-size: 26px; overflow: hidden; flex-shrink: 0; }
+.product-photo img { padding: 6px; }
+.product-photo-large { width: 100%; aspect-ratio: 4 / 3; margin-bottom: 20px; background: #fff; }
+.product-photo-form { width: 160px; height: 160px; }

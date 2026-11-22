@@ -24,15 +24,25 @@ test('acceso por lubricentro y revocación por socket', async () => {
   }));
   const originals = { findAccountById: store.findAccountById, findAccountBySlug: store.findAccountBySlug, findAccountByEmail: store.findAccountByEmail, updateStatus: store.updateStatus, saveImage: store.saveImage, getImage: store.getImage };
   const images = new Map();
+  const bucket = require('../src/bucket');
+  const bucketOriginals = { ...bucket };
+  const objects = new Map();
+  bucket.putImage = async (id, kind, image) => {
+    const key = `lubricentros/${id}/${kind}/${require('node:crypto').randomUUID()}.webp`;
+    objects.set(key, image); return key;
+  };
+  bucket.getImage = async (key) => objects.get(key);
+  bucket.removeImage = async (key) => { objects.delete(key); };
   store.findAccountById = async (id) => accounts.find((item) => item.id === id);
   store.findAccountBySlug = async (slug) => accounts.find((item) => item.slug === slug);
   store.findAccountByEmail = async (email) => accounts.find((item) => item.email === email);
   store.saveImage = async (id, version, kind, image) => {
     const account = await store.findAccountById(id);
     if (!account || account.estado !== 'Activo' || account.auth_version !== version) return undefined;
-    images.set(`${account.slug}:${kind}`, image);
+    const previousKey = images.get(`${account.slug}:${kind}`)?.key;
+    images.set(`${account.slug}:${kind}`, { key: image });
     account[kind === 'cover' ? 'hasCover' : 'hasProfile'] = true;
-    return publicAccount(account);
+    return { record: publicAccount(account), previousKey };
   };
   store.getImage = async (slug, kind) => {
     const account = await store.findAccountBySlug(slug);
@@ -92,6 +102,10 @@ test('acceso por lubricentro y revocación por socket', async () => {
     response = await request('/api/lubricentros/el-cano/images/cover');
     assert.equal(response.status, 404, 'sin foto personalizada se usa el valor por defecto del cliente');
     const png = await sharp({ create: { width: 64, height: 64, channels: 3, background: '#155fa0' } }).png().toBuffer();
+    const legacy = await sharp(png).webp().toBuffer();
+    images.set('el-cano:profile', legacy);
+    response = await request('/api/lubricentros/el-cano/images/profile');
+    assert.deepEqual(Buffer.from(await response.arrayBuffer()), legacy, 'mantiene fotos anteriores guardadas en PostgreSQL');
     async function upload(slug, kind, buffer, auth = token) {
       const form = new FormData(); form.append('image', new Blob([buffer], { type: 'image/png' }), 'test.png');
       return fetch(`${base}/api/tenant/${slug}/images/${kind}`, { method: 'POST', headers: { Authorization: `Bearer ${auth}` }, body: form });
@@ -108,6 +122,11 @@ test('acceso por lubricentro y revocación por socket', async () => {
       const metadata = await sharp(Buffer.from(await response.arrayBuffer())).metadata();
       assert.equal(metadata.format, 'webp', 'valida y convierte el contenido real');
     }
+    const oldCover = images.get('el-cano:cover').key;
+    response = await upload('el-cano', 'cover', png);
+    assert.equal(response.status, 200);
+    assert.equal(objects.has(oldCover), false, 'borra la portada reemplazada del bucket');
+    assert.equal(objects.size, 2);
     response = await upload('lorenzo', 'cover', png);
     assert.equal(response.status, 403, 'no sube imágenes a otro comercio');
     response = await upload('el-cano', 'profile', Buffer.from('not an image'));
@@ -151,6 +170,7 @@ test('acceso por lubricentro y revocación por socket', async () => {
     response = await tenantLogin('el-cano');
     assert.equal(response.status, 200, 'reactivado puede iniciar sesión nueva');
   } finally {
+    Object.assign(bucket, bucketOriginals);
     sockets.forEach((socket) => socket.disconnect());
     await new Promise((resolve) => io.close(resolve));
     Object.assign(store, originals);
