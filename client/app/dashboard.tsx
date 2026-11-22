@@ -16,6 +16,7 @@ import {
 } from "@ant-design/icons";
 import {
   Avatar,
+  Alert,
   Button,
   Card,
   Col,
@@ -30,12 +31,12 @@ import {
   Row,
   Space,
   Statistic,
+  Switch,
   Table,
-  Tag,
   theme,
 } from "antd";
 import type { TableProps } from "antd";
-import { useMemo, useState, useSyncExternalStore } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import "./dashboard.css";
 
@@ -86,9 +87,6 @@ const styles = {
 } as const;
 
 const { Header, Content, Sider } = Layout;
-const STORAGE_KEY = "tu-lubricentro:lubricentros";
-const STORAGE_EVENT = "tu-lubricentro:updated";
-const EMPTY_STORAGE = "[]";
 
 type LubricentroForm = {
   nombre: string;
@@ -98,11 +96,13 @@ type LubricentroForm = {
   ciudad: string;
   provincia: string;
   responsable: string;
+  password: string;
+  confirmPassword: string;
 };
 
-type Lubricentro = LubricentroForm & {
+type Lubricentro = Omit<LubricentroForm, 'password' | 'confirmPassword'> & {
   id: string;
-  estado: "Activo";
+  estado: "Activo" | "Inactivo";
   fechaAlta: string;
 };
 
@@ -113,19 +113,6 @@ const menuItems = [
   { key: "configuracion", icon: <SettingOutlined />, label: "Configuración" },
 ];
 
-function subscribeToLubricentros(callback: () => void) {
-  window.addEventListener(STORAGE_EVENT, callback);
-  window.addEventListener("storage", callback);
-  return () => {
-    window.removeEventListener(STORAGE_EVENT, callback);
-    window.removeEventListener("storage", callback);
-  };
-}
-
-function getLubricentrosSnapshot() {
-  return window.localStorage.getItem(STORAGE_KEY) ?? EMPTY_STORAGE;
-}
-
 export default function Dashboard() {
   const router = useRouter();
   const [form] = Form.useForm<LubricentroForm>();
@@ -133,18 +120,23 @@ export default function Dashboard() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
-  const storedLubricentros = useSyncExternalStore(
-    subscribeToLubricentros,
-    getLubricentrosSnapshot,
-    () => EMPTY_STORAGE,
-  );
-  const lubricentros = useMemo(() => {
-    try {
-      return JSON.parse(storedLubricentros) as Lubricentro[];
-    } catch {
-      return [];
-    }
-  }, [storedLubricentros]);
+  const [lubricentros, setLubricentros] = useState<Lubricentro[]>([]);
+  const [loadError, setLoadError] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [updatingId, setUpdatingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    fetch('/api/admin/lubricentros', { cache: 'no-store' })
+      .then(async (response) => {
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.message || 'No se pudo cargar el listado');
+        if (active) setLubricentros(data);
+      })
+      .catch((error: Error) => { if (active) setLoadError(error.message); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []);
 
   const filteredLubricentros = useMemo(() => {
     const term = search.trim().toLocaleLowerCase("es");
@@ -157,6 +149,22 @@ export default function Dashboard() {
         .includes(term),
     );
   }, [lubricentros, search]);
+
+  async function changeStatus(id: string, active: boolean) {
+    const estado: Lubricentro['estado'] = active ? 'Activo' : 'Inactivo';
+    try {
+      setUpdatingId(id);
+      const response = await fetch(`/api/admin/lubricentros/${id}/estado`, {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ estado }),
+      });
+      const updated: Lubricentro & { message?: string } = await response.json();
+      if (!response.ok) throw new Error(updated.message || 'No se pudo guardar el estado');
+      setLubricentros((items) => items.map((item) => item.id === id ? updated : item));
+      message.success(`Estado actualizado: ${estado.toLowerCase()}`);
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : 'No se pudo guardar el cambio de estado');
+    } finally { setUpdatingId(null); }
+  }
 
   const columns: TableProps<Lubricentro>["columns"] = [
     {
@@ -182,34 +190,39 @@ export default function Dashboard() {
       title: "Estado",
       dataIndex: "estado",
       key: "estado",
-      render: () => (
-        <Tag icon={<CheckCircleFilled />} color="success">
-          Activo
-        </Tag>
+      render: (_, record) => (
+        <Switch
+          checked={record.estado === 'Activo'}
+          loading={updatingId === record.id}
+          disabled={updatingId !== null}
+          checkedChildren="Activo"
+          unCheckedChildren="Inactivo"
+          aria-label={`Estado de ${record.nombre}`}
+          onChange={(active) => changeStatus(record.id, active)}
+        />
       ),
     },
   ];
 
-  const saveLubricentro = (values: LubricentroForm) => {
+  const saveLubricentro = async (values: LubricentroForm) => {
     setSaving(true);
-
-    const newLubricentro: Lubricentro = {
-      ...values,
-      id: crypto.randomUUID(),
-      estado: "Activo",
-      fechaAlta: new Date().toISOString(),
-    };
-
-    const updated = [newLubricentro, ...lubricentros];
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(updated));
-    window.dispatchEvent(new Event(STORAGE_EVENT));
-    setSaving(false);
-    setDrawerOpen(false);
-    form.resetFields();
-    message.success("Lubricentro registrado correctamente");
+    try {
+      const response = await fetch('/api/admin/lubricentros', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(values),
+      });
+      const created = await response.json();
+      if (!response.ok) throw new Error(created.message || 'No se pudo registrar el lubricentro');
+      setLubricentros((items) => [created, ...items]);
+      setDrawerOpen(false);
+      form.resetFields();
+      message.success('Lubricentro registrado con su contraseña');
+    } catch (error) {
+      message.error(error instanceof Error ? error.message : 'No se pudo registrar el lubricentro');
+    } finally { setSaving(false); }
   };
 
   const closeDrawer = () => {
+    if (saving) return;
     setDrawerOpen(false);
     form.resetFields();
   };
@@ -301,6 +314,7 @@ export default function Dashboard() {
           </Header>
 
           <Content className={styles.content}>
+            {loadError && <Alert type="error" showIcon title={loadError} style={{ marginBottom: 20 }} />}
             <section className={styles.titleRow}>
               <div>
                 <span className={styles.eyebrow}>ORGANIZACIONES</span>
@@ -326,7 +340,7 @@ export default function Dashboard() {
                 <Card className={styles.statCard} variant="borderless">
                   <Statistic
                     title="Comercios activos"
-                    value={lubricentros.length}
+                    value={lubricentros.filter((item) => item.estado === 'Activo').length}
                     prefix={<CheckCircleFilled className={styles.statIconBlue} />}
                   />
                 </Card>
@@ -359,6 +373,7 @@ export default function Dashboard() {
               </div>
               <div className={`${styles.tableWrap} ${styles.desktopTable}`}>
                 <Table<Lubricentro>
+                  loading={loading}
                   rowKey="id"
                   columns={columns}
                   dataSource={filteredLubricentros}
@@ -395,7 +410,15 @@ export default function Dashboard() {
                         <div>
                           <strong>{lubricentro.nombre}</strong>
                         </div>
-                        <Tag icon={<CheckCircleFilled />} color="success">Activo</Tag>
+                        <Switch
+                          checked={lubricentro.estado === 'Activo'}
+                          loading={updatingId === lubricentro.id}
+                          disabled={updatingId !== null}
+                          checkedChildren="Activo"
+                          unCheckedChildren="Inactivo"
+                          aria-label={`Estado de ${lubricentro.nombre}`}
+                          onChange={(active) => changeStatus(lubricentro.id, active)}
+                        />
                       </div>
                       <dl className={styles.mobileDetails}>
                         <div>
@@ -408,7 +431,7 @@ export default function Dashboard() {
                 ) : (
                   <Empty
                     image={Empty.PRESENTED_IMAGE_SIMPLE}
-                    description={search ? "No encontramos resultados." : "Todavía no registraste ningún lubricentro."}
+                    description={loading ? 'Cargando lubricentros...' : loadError ? 'Listado no disponible' : search ? "No encontramos resultados." : "Todavía no registraste ningún lubricentro."}
                   >
                     {!search && (
                       <Button type="primary" onClick={() => setDrawerOpen(true)}>
@@ -530,6 +553,24 @@ export default function Dashboard() {
             rules={[{ required: true, message: "Ingresá el nombre del responsable" }]}
           >
             <Input placeholder="Nombre del responsable" />
+          </Form.Item>
+          <div className={styles.formSection}>
+            <h3>Acceso del lubricentro</h3>
+            <p>Asigná una contraseña para el correo electrónico registrado.</p>
+          </div>
+          <Form.Item label="Contraseña" name="password" rules={[
+            { required: true, message: 'Ingresá una contraseña' },
+            { min: 8, max: 128, message: 'Usá entre 8 y 128 caracteres' },
+          ]}>
+            <Input.Password autoComplete="new-password" placeholder="Mínimo 8 caracteres" maxLength={128} />
+          </Form.Item>
+          <Form.Item label="Confirmar contraseña" name="confirmPassword" dependencies={['password']} rules={[
+            { required: true, message: 'Confirmá la contraseña' },
+            ({ getFieldValue }) => ({ validator(_, value) {
+              return !value || value === getFieldValue('password') ? Promise.resolve() : Promise.reject(new Error('Las contraseñas no coinciden'));
+            } }),
+          ]}>
+            <Input.Password autoComplete="new-password" placeholder="Repetí la contraseña" maxLength={128} />
           </Form.Item>
         </Form>
       </Drawer>
