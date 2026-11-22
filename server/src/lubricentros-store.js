@@ -59,6 +59,9 @@ module.exports = {
   async findAccountBySlug(slug) {
     return (await (await database()).query(`SELECT ${PUBLIC_COLUMNS}, password_hash, auth_version FROM panel_lubricentros WHERE slug=$1`, [slug])).rows[0];
   },
+  async findAccountByEmail(email) {
+    return (await (await database()).query(`SELECT ${PUBLIC_COLUMNS}, password_hash, auth_version FROM panel_lubricentros WHERE email=$1`, [email])).rows[0];
+  },
   async findAccountById(id) {
     return (await (await database()).query(`SELECT ${PUBLIC_COLUMNS}, password_hash, auth_version FROM panel_lubricentros WHERE id=$1`, [id])).rows[0];
   },

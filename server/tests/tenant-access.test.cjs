@@ -20,9 +20,10 @@ test('acceso por lubricentro y revocación por socket', async () => {
     id: `00000000-0000-4000-8000-00000000000${index + 1}`, slug, nombre: slug,
     email: `${slug}@example.test`, password_hash: hash, auth_version: 0, estado: 'Activo',
   }));
-  const originals = { findAccountById: store.findAccountById, findAccountBySlug: store.findAccountBySlug, updateStatus: store.updateStatus };
+  const originals = { findAccountById: store.findAccountById, findAccountBySlug: store.findAccountBySlug, findAccountByEmail: store.findAccountByEmail, updateStatus: store.updateStatus };
   store.findAccountById = async (id) => accounts.find((item) => item.id === id);
   store.findAccountBySlug = async (slug) => accounts.find((item) => item.slug === slug);
+  store.findAccountByEmail = async (email) => accounts.find((item) => item.email === email);
   store.updateStatus = async (id, estado) => {
     const account = await store.findAccountById(id);
     if (account.estado !== estado) account.auth_version += 1;
@@ -39,7 +40,7 @@ test('acceso por lubricentro y revocación por socket', async () => {
     method, headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
     body: body ? JSON.stringify(body) : undefined,
   });
-  const tenantLogin = (slug, pass = password) => request(`/api/tenant/${slug}/login`, 'POST', { email: `${slug}@example.test`, password: pass });
+  const tenantLogin = (slug, pass = password) => request('/api/tenant/login', 'POST', { email: `${slug}@example.test`, password: pass });
   async function socketFor(token, slug) {
     const response = await request(`/api/tenant/${slug}/socket`, 'POST', undefined, token);
     assert.equal(response.status, 200);
@@ -57,9 +58,11 @@ test('acceso por lubricentro y revocación por socket', async () => {
     let response = await tenantLogin('el-cano', 'incorrecta');
     assert.equal(response.status, 401);
     response = await tenantLogin('el-cano');
-    const { token } = await response.json();
+    const { token, slug: firstSlug } = await response.json();
+    assert.equal(firstSlug, 'el-cano', 'login general identifica el slug por correo');
     const second = await tenantLogin('lorenzo');
-    const { token: token2 } = await second.json();
+    const { token: token2, slug: secondSlug } = await second.json();
+    assert.equal(secondSlug, 'lorenzo', 'el segundo comercio obtiene su propio destino');
     response = await request('/api/tenant/lorenzo/session', 'GET', undefined, token);
     assert.equal(response.status, 403, 'no accede a otro comercio');
     response = await request('/api/tenant/el-cano/session', 'GET', undefined, token);

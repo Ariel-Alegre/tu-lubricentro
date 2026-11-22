@@ -16,6 +16,7 @@ const accounts = ['el-cano', 'lorenzo'].map((slug, index) => ({
 }));
 store.findAccountById = async (id) => accounts.find((item) => item.id === id);
 store.findAccountBySlug = async (slug) => accounts.find((item) => item.slug === slug);
+store.findAccountByEmail = async (email) => accounts.find((item) => item.email === email);
 store.updateStatus = async (id, estado) => {
   const account = await store.findAccountById(id);
   if (account.estado !== estado) account.auth_version += 1;
