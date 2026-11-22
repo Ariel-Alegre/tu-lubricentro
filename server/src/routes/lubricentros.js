@@ -3,12 +3,13 @@ const { randomBytes, scrypt } = require('crypto');
 const { promisify } = require('util');
 const { requireAdmin } = require('./admin');
 const store = require('../lubricentros-store');
+const { validSlug } = require('../slug');
 const deriveKey = promisify(scrypt);
 const router = Router();
 router.use(requireAdmin);
 
 function fail(res, error) {
-  if (error.code === '23505') return res.status(409).json({ message: 'Ya existe un lubricentro con ese correo' });
+  if (error.code === '23505') return res.status(409).json({ message: error.constraint && error.constraint.includes('slug') ? 'Esa dirección ya pertenece a otro lubricentro' : 'Ya existe un lubricentro con ese correo' });
   if (error.status === 503) return res.status(503).json({ message: error.message });
   console.error('Error de almacenamiento de lubricentros:', error.code || error.name);
   return res.status(503).json({ message: 'No se pudo guardar o consultar el lubricentro. Revisá la conexión a PostgreSQL.' });
@@ -28,6 +29,8 @@ router.post('/', async (req, res) => {
     data[field] = body[field].trim();
   }
   data.email = data.email.toLowerCase();
+  if (!validSlug(body.slug)) return res.status(400).json({ message: 'Ingresá una dirección única de 2 a 63 caracteres: letras minúsculas, números y guiones. Evitá nombres reservados como login o api.' });
+  data.slug = body.slug;
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) return res.status(400).json({ message: 'Ingresá un correo válido' });
   if (typeof body.password !== 'string' || body.password.length < 6 || body.password.length > 128) {
     return res.status(400).json({ message: 'La contraseña debe tener entre 6 y 128 caracteres' });
