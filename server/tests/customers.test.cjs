@@ -34,16 +34,19 @@ test('clientes e historial por patente: PostgreSQL real en memoria, aislamiento,
     let response = await req('', 'POST', body); assert.equal(response.status, 201); const first = await response.json(); assert.equal(first.patente, 'AB123CD'); assert.equal(first.visitas.length, 1); assert.equal(first.nombre, body.nombre);
     response = await req(`/vehicles/${first.id}/share`, 'POST', {}, 1); assert.equal(response.status, 404, 'solo el dueño genera el QR');
     response = await req(`/vehicles/${first.id}/share`, 'POST', {}, 0, null); assert.equal(response.status, 401);
-    response = await req(`/vehicles/${first.id}/share`, 'POST', {}); assert.equal(response.status, 200); const { token: historyToken } = await response.json(); assert.match(historyToken, /^[a-f0-9]{64}$/);
-    response = await req(`/vehicles/${first.id}/share`, 'POST', {}); assert.equal((await response.json()).token, historyToken, 'el QR se mantiene para próximas visitas');
+    response = await req(`/vehicles/${first.id}/share`, 'POST', {}); assert.equal(response.status, 200); assert.deepEqual(await response.json(), { slug: 'el-cano', patente: 'AB123CD' }, 'el QR solo necesita lubricentro y patente');
+    const { token: historyToken } = await memory.methods.shareCustomerHistory(accounts[0], first.id); // Compatibilidad de QR anteriores.
+    response = await req(`/vehicles/${first.id}/share`, 'POST', {}); assert.deepEqual(await response.json(), { slug: 'el-cano', patente: 'AB123CD' });
     response = await req(`/vehicles/${first.id}`); assert.equal(JSON.stringify(await response.json()).includes(historyToken), false, 'el enlace no se filtra en consultas comunes');
     const sharedResponse = await fetch(`${base}/api/history/${historyToken}`); assert.equal(sharedResponse.status, 200); assert.equal(sharedResponse.headers.get('cache-control'), 'no-store');
     const shared = await sharedResponse.json(); assert.deepEqual(Object.keys(shared).sort(), ['lubricentro','slug','patente','marca','modelo','visitas'].sort());
     assert.deepEqual(Object.keys(shared.visitas[0]).sort(), ['id','fecha','servicio','productos','kilometraje'].sort()); assert.equal(shared.patente, 'AB123CD');
+    const byPlate = await (await fetch(`${base}/api/history/vehicle/el-cano/ab123cd`)).json(); assert.deepEqual(byPlate, shared, 'consulta directa sin clave por lubricentro y patente');
+    assert.equal((await fetch(`${base}/api/history/vehicle/lorenzo/AB123CD`)).status, 404);
     assert.equal(JSON.stringify(shared).includes(body.nombre), false); assert.equal(JSON.stringify(shared).includes(body.observaciones), false);
     assert.equal((await fetch(`${base}/api/history/${'0'.repeat(64)}`)).status, 404); assert.equal((await fetch(`${base}/api/history/AB123CD`)).status, 404);
     assert.equal((await fetch(`${base}/api/history/${historyToken}`, { method: 'POST' })).status, 404, 'el acceso compartido es de solo lectura');
-    const sharedSocket = connect(base + '/history', { auth: { token: historyToken }, transports: ['websocket'], autoConnect: false, reconnection: false }); sockets.push(sharedSocket);
+    const sharedSocket = connect(base + '/history', { auth: { slug: 'el-cano', plate: 'AB123CD' }, transports: ['websocket'], autoConnect: false, reconnection: false }); sockets.push(sharedSocket);
     const sharedReady = once(sharedSocket, 'history:ready', { signal: AbortSignal.timeout(5000) }); sharedSocket.connect(); await sharedReady;
     let sharedChanges = 0; sharedSocket.on('history:changed', (...args) => { assert.equal(args.length, 0); sharedChanges++; });
     response = await req('', 'POST', body); assert.equal(response.status, 201); assert.equal((await response.json()).visitas.length, 1, 'reintentar no duplica la atención');
@@ -64,8 +67,11 @@ test('clientes e historial por patente: PostgreSQL real en memoria, aislamiento,
     response = await req(); const list = await response.json(); assert.equal(list.clientes.length, 1); assert.equal(list.vehiculos.length, 2, 'reutiliza el cliente con otro vehículo'); assert.equal(list.vehiculos.find((item) => item.id === first.id).totalVisitas, 2);
     response = await req('', 'POST', registration({ patente: 'AB123CD', nombre: 'Otro cliente' }), 1); assert.equal(response.status, 201, 'la misma patente puede atenderse en otro lubricentro');
     const otherVehicle = await response.json();
-    response = await req(`/vehicles/${otherVehicle.id}/share`, 'POST', {}, 1); const otherHistoryToken = (await response.json()).token; assert.notEqual(otherHistoryToken, historyToken);
+    response = await req(`/vehicles/${otherVehicle.id}/share`, 'POST', {}, 1); assert.deepEqual(await response.json(), { slug: 'lorenzo', patente: 'AB123CD' });
+    const { token: otherHistoryToken } = await memory.methods.shareCustomerHistory(accounts[1], otherVehicle.id); assert.notEqual(otherHistoryToken, historyToken);
     assert.equal((await (await fetch(`${base}/api/history/${otherHistoryToken}`)).json()).visitas.length, 1, 'no mezcla los historiales de una patente atendida en dos negocios');
+    assert.equal((await (await fetch(`${base}/api/history/vehicle/lorenzo/AB123CD`)).json()).visitas.length, 1);
+    assert.equal((await (await fetch(`${base}/api/history/vehicle/el-cano/AB123CD`)).json()).visitas.length, 2);
     assert.equal(sharedChanges, beforeOtherVehicle, 'no envía cambios de otros vehículos al QR');
     response = await req('', 'GET', undefined, 1); assert.equal((await response.json()).clientes[0].nombre, 'Otro cliente');
     const concurrent = await Promise.all([req('', 'POST', registration({ patente: 'XYZ789' })), req('', 'POST', registration({ patente: 'xyz-789' }))]); assert.deepEqual(concurrent.map((item) => item.status).sort(), [201, 409]);
@@ -107,6 +113,7 @@ test('clientes e historial por patente: PostgreSQL real en memoria, aislamiento,
     accounts[0].estado = 'Inactivo'; response = await req(); assert.equal(response.status, 403);
     require('../src/realtime').publishProfileChange(accounts[0].id, accounts[0].slug, false);
     assert.equal((await fetch(`${base}/api/history/${historyToken}`)).status, 404, 'QR inactivo si el lubricentro se desactiva');
+    assert.equal((await fetch(`${base}/api/history/vehicle/el-cano/AB123CD`)).status, 404);
     await memory.db.query("UPDATE panel_lubricentros SET estado='Activo', slug='el-cano-renombrado', nombre='Nuevo nombre' WHERE id=$1", [accounts[0].id]);
     const afterRename = await (await fetch(`${base}/api/history/${historyToken}`)).json(); assert.equal(afterRename.slug, 'el-cano-renombrado'); assert.equal(afterRename.lubricentro, 'Nuevo nombre', 'el QR sigue sirviendo aunque cambie el slug');
     const count = await memory.db.query('SELECT COUNT(*)::int AS total FROM lubricentro_clientes WHERE lubricentro_id=$1', [accounts[0].id]); assert.equal(count.rows[0].total, 2, 'el conflicto no deja clientes huérfanos');

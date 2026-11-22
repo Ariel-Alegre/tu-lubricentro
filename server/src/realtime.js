@@ -10,7 +10,10 @@ function attachRealtime(httpServer) {
   histories.use(async (socket, next) => {
     try {
       const token = socket.handshake.auth.token;
-      const record = typeof token === 'string' && /^[a-f0-9]{64}$/.test(token) ? await store.sharedVehicle(token) : null;
+      const { slug, plate } = socket.handshake.auth;
+      const record = typeof token === 'string' && /^[a-f0-9]{64}$/.test(token)
+        ? await store.sharedVehicle(token)
+        : validSlug(slug) && typeof plate === 'string' && /^[a-z0-9]{5,10}$/i.test(plate) ? await store.sharedVehicleByPlate(slug, plate.toUpperCase()) : null;
       if (!record) { const error = new Error('Historial no disponible'); error.data = { status: 404 }; return next(error); }
       socket.data.sharedVehicle = record; next();
     } catch { const error = new Error('Servicio no disponible'); error.data = { status: 503 }; next(error); }

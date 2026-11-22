@@ -9,26 +9,27 @@ import { sharedHistoryPath } from '../../lib/shared-history';
 import { visitDate } from '../../lib/customers';
 import './shared-history.css';
 
-export default function SharedHistoryView({ token, initial, initialError, socketUrl }: { token: string; initial: SharedHistory | null; initialError: string; socketUrl: string }) {
+export default function SharedHistoryView({ token, slug, plate, initial, initialError, socketUrl }: { token?: string; slug?: string; plate?: string; initial: SharedHistory | null; initialError: string; socketUrl: string }) {
   const [history, setHistory] = useState(initial);
   const [error, setError] = useState(initialError);
   const [retry, setRetry] = useState(0);
   useEffect(() => {
     if (!history) return;
-    const canonical = sharedHistoryPath(history.slug, history.patente, token);
+    const canonical = sharedHistoryPath(history.slug, history.patente);
     if (window.location.pathname + window.location.search !== canonical) window.history.replaceState(null, '', canonical);
-  }, [history, token]);
+  }, [history]);
   useEffect(() => {
     let stopped = false; let running = false; let dirty = false; let generation = 0;
     let timer: ReturnType<typeof setTimeout> | undefined; let reconnect: ReturnType<typeof setTimeout> | undefined;
     const controller = new AbortController();
-    const socket = io(`${socketUrl.replace(/\/$/, '')}/history`, { transports: ['websocket'], auth: { token }, autoConnect: false });
+    const socket = io(`${socketUrl.replace(/\/$/, '')}/history`, { transports: ['websocket'], auth: token ? { token } : { slug, plate }, autoConnect: false });
     async function refresh() {
       dirty = true; if (running || stopped) return; running = true;
       try {
         while (dirty && !stopped) {
           dirty = false; const current = generation;
-          const response = await fetch(`/api/history/${token}`, { cache: 'no-store', signal: controller.signal });
+          const path = token ? token : `vehicle/${encodeURIComponent(slug!)}/${encodeURIComponent(plate!)}`;
+          const response = await fetch(`/api/history/${path}`, { cache: 'no-store', signal: controller.signal });
           if (stopped || current !== generation) continue;
           if (response.status === 404) { setHistory(null); setError(''); continue; }
           if (!response.ok) throw new Error();
@@ -43,7 +44,7 @@ export default function SharedHistoryView({ token, initial, initialError, socket
     socket.on('connect_error', () => { void refresh(); clearTimeout(reconnect); reconnect = setTimeout(() => { if (!stopped) socket.connect(); }, 5000); });
     const focus = () => { void refresh(); }; window.addEventListener('focus', focus); socket.connect();
     return () => { stopped = true; clearTimeout(timer); clearTimeout(reconnect); controller.abort(); socket.disconnect(); window.removeEventListener('focus', focus); };
-  }, [token, socketUrl, retry]);
+  }, [token, slug, plate, socketUrl, retry]);
 
   return <div className="shared-history-page">
     <header className="shared-history-topbar"><Image src="/tu-lubricentro-logo.png" width={36} height={36} alt="" /><strong>Tu Lubricentro</strong><span>Historial de servicios</span></header>

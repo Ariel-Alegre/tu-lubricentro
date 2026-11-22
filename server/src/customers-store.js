@@ -43,6 +43,12 @@ function methods({ database, transaction }) {
   async function append(client, account, vehicleId, data) {
     await client.query(`INSERT INTO lubricentro_atenciones (id,lubricentro_id,vehiculo_id,solicitud_id,fecha,servicio,productos,kilometraje,observaciones,monto,metodo_pago) VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,$8,$9,$10,$11)`, [randomUUID(), account.id, vehicleId, data.solicitudId, data.fecha, data.servicio, JSON.stringify(data.productos), data.kilometraje, data.observaciones, data.monto ?? null, data.metodoPago ?? null]);
   }
+  async function publicDetail(record) {
+    if (!record) return null;
+    const { vehicleId, ownerId, ...publicFields } = record;
+    const visits = (await (await database()).query(`SELECT id, to_char(fecha,'YYYY-MM-DD') AS fecha, servicio, productos, kilometraje FROM lubricentro_atenciones WHERE lubricentro_id=$1 AND vehiculo_id=$2 ORDER BY fecha DESC, creada DESC, id DESC`, [ownerId, vehicleId])).rows;
+    return { ...publicFields, visitas: visits };
+  }
   return {
     async shareCustomerHistory(account, id) {
       return transaction(async (client) => {
@@ -56,11 +62,13 @@ function methods({ database, transaction }) {
       return (await (await database()).query(`SELECT v.id AS "vehicleId", v.lubricentro_id AS "ownerId", l.nombre AS lubricentro, l.slug, v.patente, v.marca, v.modelo FROM lubricentro_vehiculos v JOIN panel_lubricentros l ON l.id=v.lubricentro_id WHERE v.history_token=$1 AND l.estado='Activo'`, [token])).rows[0];
     },
     async publicCustomerHistory(token) {
-      const record = await this.sharedVehicle(token);
-      if (!record) return null;
-      const { vehicleId, ownerId, ...publicFields } = record;
-      const visits = (await (await database()).query(`SELECT id, to_char(fecha,'YYYY-MM-DD') AS fecha, servicio, productos, kilometraje FROM lubricentro_atenciones WHERE lubricentro_id=$1 AND vehiculo_id=$2 ORDER BY fecha DESC, creada DESC, id DESC`, [ownerId, vehicleId])).rows;
-      return { ...publicFields, visitas: visits };
+      return publicDetail(await this.sharedVehicle(token));
+    },
+    async sharedVehicleByPlate(slug, plate) {
+      return (await (await database()).query(`SELECT v.id AS "vehicleId", v.lubricentro_id AS "ownerId", l.nombre AS lubricentro, l.slug, v.patente, v.marca, v.modelo FROM lubricentro_vehiculos v JOIN panel_lubricentros l ON l.id=v.lubricentro_id WHERE l.slug=$1 AND v.patente=$2 AND l.estado='Activo'`, [slug, plate])).rows[0];
+    },
+    async publicCustomerHistoryByPlate(slug, plate) {
+      return publicDetail(await this.sharedVehicleByPlate(slug, plate));
     },
     async payCustomerVisit(account, vehicleId, visitId, payment) {
       return transaction(async (client) => {

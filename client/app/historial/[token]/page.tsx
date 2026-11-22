@@ -10,7 +10,7 @@ async function History({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   if (!/^[a-f0-9]{64}$/.test(token)) notFound();
   const { initial, error } = await loadSharedHistory(token);
-  if (initial) redirect(sharedHistoryPath(initial.slug, initial.patente, token));
+  if (initial) redirect(sharedHistoryPath(initial.slug, initial.patente));
   return <SharedHistoryView token={token} initial={initial} initialError={error} socketUrl={process.env.SOCKET_PUBLIC_URL || API_URL} />;
 }
 export default function SharedHistoryPage(props: { params: Promise<{ token: string }> }) {

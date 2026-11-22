@@ -62,7 +62,11 @@ router.post('/vehicles/:id/visits', async (req, res) => {
 });
 router.post('/vehicles/:id/share', async (req, res) => {
   if (!validId(req.params.id)) return res.status(400).json({ message: 'Vehículo inválido' });
-  try { res.set('Cache-Control', 'no-store').json(await store.shareCustomerHistory(req.tenant, req.params.id)); }
+  try {
+    const vehicle = await store.customerVehicle(req.tenant.id, req.params.id);
+    if (!vehicle) return res.status(404).json({ message: 'Vehículo no encontrado' });
+    res.set('Cache-Control', 'no-store').json({ slug: req.tenant.slug, patente: vehicle.patente });
+  }
   catch (cause) { error(res, cause); }
 });
 router.post('/vehicles/:id/visits/:visitId/payment', async (req, res) => {
