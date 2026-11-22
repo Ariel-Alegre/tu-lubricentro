@@ -4,4 +4,5 @@ const router = Router();
 router.use('/api/admin', adminRouter);
 router.use('/api/admin/lubricentros', require('./lubricentros'));
 router.use('/api/lubricentros', require('./public-lubricentros'));
+router.use('/api/tenant', require('./tenant'));
 module.exports = router;

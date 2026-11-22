@@ -34,6 +34,7 @@ async function database() {
     UPDATE panel_lubricentros SET slug = 'lubricentro-' || id::text WHERE slug IS NULL;
     CREATE UNIQUE INDEX IF NOT EXISTS panel_lubricentros_slug_unique ON panel_lubricentros(slug);
     ALTER TABLE panel_lubricentros ALTER COLUMN slug SET NOT NULL;
+    ALTER TABLE panel_lubricentros ADD COLUMN IF NOT EXISTS auth_version INTEGER NOT NULL DEFAULT 0;
     `).catch((error) => { ready = null; throw error; });
   }
   await ready;
@@ -55,6 +56,12 @@ module.exports = {
   async findBySlug(slug) {
     return (await (await database()).query(`SELECT nombre, slug, telefono, direccion, ciudad, provincia FROM panel_lubricentros WHERE slug=$1 AND estado='Activo'`, [slug])).rows[0];
   },
+  async findAccountBySlug(slug) {
+    return (await (await database()).query(`SELECT ${PUBLIC_COLUMNS}, password_hash, auth_version FROM panel_lubricentros WHERE slug=$1`, [slug])).rows[0];
+  },
+  async findAccountById(id) {
+    return (await (await database()).query(`SELECT ${PUBLIC_COLUMNS}, password_hash, auth_version FROM panel_lubricentros WHERE id=$1`, [id])).rows[0];
+  },
   async create(data, passwordHash) {
     const { randomUUID } = require('crypto');
     const values = [randomUUID(), data.nombre, data.email, data.telefono, data.direccion, data.ciudad, data.provincia, data.responsable, passwordHash, data.slug];
@@ -63,13 +70,15 @@ module.exports = {
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING ${PUBLIC_COLUMNS}`, values)).rows[0];
   },
   async updateStatus(id, estado) {
-    return (await (await database()).query(`UPDATE panel_lubricentros SET estado=$1 WHERE id=$2 RETURNING ${PUBLIC_COLUMNS}`, [estado, id])).rows[0];
+    return (await (await database()).query(`UPDATE panel_lubricentros SET estado=$1,
+      auth_version=auth_version + CASE WHEN estado<>$1 THEN 1 ELSE 0 END
+      WHERE id=$2 RETURNING ${PUBLIC_COLUMNS}`, [estado, id])).rows[0];
   },
   async update(id, data, passwordHash) {
     const values = [data.nombre, data.slug, data.email, data.telefono, data.direccion, data.ciudad, data.provincia, data.responsable, passwordHash, id];
     return (await (await database()).query(`UPDATE panel_lubricentros SET
       nombre=$1, slug=$2, email=$3, telefono=$4, direccion=$5, ciudad=$6, provincia=$7, responsable=$8,
-      password_hash=COALESCE($9, password_hash)
+      password_hash=COALESCE($9, password_hash), auth_version=auth_version+1
       WHERE id=$10 RETURNING ${PUBLIC_COLUMNS}`, values)).rows[0];
   },
 };

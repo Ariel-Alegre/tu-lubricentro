@@ -1,12 +1,16 @@
 const server = require('./src/app.js');
 const store = require('./src/lubricentros-store');
+const http = require('http');
+const { attachRealtime } = require('./src/realtime');
+const httpServer = http.createServer(server);
+attachRealtime(httpServer);
 const PORT = process.env.PORT || 3001;
 
 async function start() {
   try {
     await store.initialize();
     console.log('PostgreSQL conectado. Tabla panel_lubricentros preparada.');
-    server.listen(PORT, () => {
+    httpServer.listen(PORT, '0.0.0.0', () => {
       console.log(`Servidor corriendo en el puerto ${PORT}`);
     });
   } catch (error) {
