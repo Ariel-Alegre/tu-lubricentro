@@ -6,3 +6,20 @@
 .customer-qr-modal .ant-btn-primary { background: #155fa0; border-color: #155fa0; }
 .customer-qr-note { color: #748396; line-height: 1.6; font-size: 12px; margin-top: 14px; }
 .customer-qr-loading { text-align: center; padding: 56px; }
+.customer-qr-print-root { display: none; }
+@media print {
+  body:has(> .customer-qr-print-root) { margin: 0 !important; padding: 0 !important; overflow: visible !important; height: auto !important; background: white !important; }
+  body:has(> .customer-qr-print-root) > :not(.customer-qr-print-root) { display: none !important; }
+  .customer-qr-print-root { display: block !important; padding: 10mm 0; color: #111; font-family: Arial, sans-serif; }
+  .customer-qr-print-sheet { box-sizing: border-box; width: 100mm; max-width: 100%; margin: 0 auto; padding: 8mm; border: 1px solid #b8b8b8; border-radius: 3mm; text-align: center; break-inside: avoid; }
+  .qr-print-brand { display: block; font-size: 9pt; color: #555; }
+  .customer-qr-print-sheet h1 { margin: 3mm 0; font-size: 18pt; line-height: 1.3; overflow-wrap: anywhere; }
+  .qr-print-heading { font-size: 10pt; margin-bottom: 5mm; }
+  .qr-print-plate { display: inline-block; font-size: 22pt; letter-spacing: 1mm; padding: 2mm 4mm; border: 1px solid #333; border-radius: 1mm; }
+  .customer-qr-print-sheet .ant-qrcode { box-sizing: border-box; width: 78mm !important; height: 78mm !important; padding: 5mm !important; margin: 2mm auto; background: white !important; }
+  .customer-qr-print-sheet .ant-qrcode svg { display: block; width: 100%; height: 100%; }
+  .customer-qr-print-sheet h2 { font-size: 13pt; margin: 3mm 0; }
+  .customer-qr-print-sheet p { font-size: 10pt; line-height: 1.6; }
+  .qr-print-url { display: block; margin: 4mm 0; font-size: 9pt; line-height: 1.5; overflow-wrap: anywhere; }
+  .customer-qr-print-sheet small { display: block; font-size: 8pt; line-height: 1.6; color: #555; }
+}

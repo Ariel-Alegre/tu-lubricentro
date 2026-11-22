@@ -200,6 +200,6 @@ export default function CustomersPanel({ slug, nombre, version, onOpenMenu, onLo
         <Form.Item name="metodoPago" label="¿Con qué método paga?" rules={[{ required: true, message: 'Seleccioná el método de pago' }]}><Select placeholder="Seleccioná un método" options={paymentMethods} /></Form.Item>
       </Form>
     </Modal>
-    {history && <CustomerHistoryQR key={history.id} slug={slug} vehicleId={history.id} plate={history.patente} open={shareOpen} onClose={() => setShareOpen(false)} />}
+    {history && <CustomerHistoryQR key={history.id} slug={slug} vehicleId={history.id} plate={history.patente} businessName={nombre} open={shareOpen} onClose={() => setShareOpen(false)} />}
   </div>;
 }

@@ -1,12 +1,13 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Alert, Button, Input, Modal, QRCode, Spin } from 'antd';
-import { CheckOutlined, CopyOutlined, DownloadOutlined, QrcodeOutlined } from '@ant-design/icons';
+import { CheckOutlined, CopyOutlined, DownloadOutlined, PrinterOutlined, QrcodeOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
 import { sharedHistoryPath } from '../../lib/shared-history';
 import './customer-history-qr.css';
 
-export default function CustomerHistoryQR({ slug, vehicleId, plate, open, onClose }: { slug: string; vehicleId: string; plate: string; open: boolean; onClose: () => void }) {
+export default function CustomerHistoryQR({ slug, vehicleId, plate, businessName, open, onClose }: { slug: string; vehicleId: string; plate: string; businessName: string; open: boolean; onClose: () => void }) {
   const router = useRouter();
   const [link, setLink] = useState('');
   const [error, setError] = useState('');
@@ -37,9 +38,11 @@ export default function CustomerHistoryQR({ slug, vehicleId, plate, open, onClos
       const anchor = document.createElement('a'); anchor.href = canvas.toDataURL('image/png'); anchor.download = `historial-${plate}.png`; anchor.click();
     } catch { setError('No se pudo descargar el QR. Intentá nuevamente.'); }
   }
-  return <Modal className="customer-qr-modal" title={<span><QrcodeOutlined /> QR del historial del cliente</span>} open={open} onCancel={onClose} footer={<Button onClick={onClose}>Volver al historial</Button>} centered width={440}>
+  return <><Modal className="customer-qr-modal" title={<span><QrcodeOutlined /> QR del historial del cliente</span>} open={open} onCancel={onClose} footer={<Button onClick={onClose}>Volver al historial</Button>} centered width={440}>
     <div className="customer-qr-intro"><strong>{plate}</strong><p>El cliente escanea este código y ve los servicios realizados en tu lubricentro, sin iniciar sesión.</p></div>
     {error && <Alert type="warning" showIcon title={error} action={!link ? <Button onClick={() => setRetry((value) => value + 1)}>Reintentar</Button> : undefined} />}
-    {link ? <><div className="customer-qr-code" ref={qr}><QRCode value={link} size={256} type="canvas" errorLevel="M" /></div><div className="customer-qr-actions"><Button type="primary" icon={<DownloadOutlined />} onClick={download}>Descargar QR</Button><Button icon={copied ? <CheckOutlined /> : <CopyOutlined />} onClick={copy}>{copied ? 'Copiado' : 'Copiar enlace'}</Button></div><Input.TextArea aria-label="Enlace del historial del cliente" readOnly autoSize={{ minRows: 2, maxRows: 3 }} value={link} onFocus={(event) => event.target.select()} /><p className="customer-qr-note">Quien tenga este QR puede consultar los servicios de este vehículo. El enlace incluye las próximas atenciones; no hace falta generar otro QR.</p></> : !error && <div className="customer-qr-loading"><Spin description="Generando QR..." /></div>}
-  </Modal>;
+    {link ? <><div className="customer-qr-code" ref={qr}><QRCode value={link} size={256} type="canvas" errorLevel="M" /></div><div className="customer-qr-actions"><Button icon={<DownloadOutlined />} onClick={download}>Descargar QR</Button><Button type="primary" icon={<PrinterOutlined />} onClick={() => window.print()}>Imprimir QR</Button><Button icon={copied ? <CheckOutlined /> : <CopyOutlined />} onClick={copy}>{copied ? 'Copiado' : 'Copiar enlace'}</Button></div><Input.TextArea aria-label="Enlace del historial del cliente" readOnly autoSize={{ minRows: 2, maxRows: 3 }} value={link} onFocus={(event) => event.target.select()} /><p className="customer-qr-note">Quien tenga este QR puede consultar los servicios de este vehículo. El enlace incluye las próximas atenciones; no hace falta generar otro QR.</p></> : !error && <div className="customer-qr-loading"><Spin description="Generando QR..." /></div>}
+  </Modal>
+    {link && open && createPortal(<div className="customer-qr-print-root"><article className="customer-qr-print-sheet"><span className="qr-print-brand">Tu Lubricentro</span><h1>{businessName}</h1><p className="qr-print-heading">Historial de servicios de tu vehículo</p><strong className="qr-print-plate">{plate}</strong><QRCode type="svg" value={link} size={300} errorLevel="M" bordered={false} /><h2>Escaneá para ver tu historial</h2><p>Consultá los servicios, productos y kilometraje de las atenciones realizadas en este lubricentro.</p><span className="qr-print-url">{link}</span><small>Guardá este QR: incluye también tus próximas visitas.</small></article></div>, document.body)}
+  </>;
 }
