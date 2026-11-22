@@ -8,7 +8,8 @@ async function handle(request: NextRequest, context: { params: Promise<{ slug: s
   if (request.method !== 'GET' && request.headers.get('origin') !== request.nextUrl.origin) return NextResponse.json({ message: 'Origen inválido' }, { status: 403 });
   const id = (value: string) => /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(value);
   const valid = !segments.length || (request.method === 'GET' && segments.length === 2 && ((segments[0] === 'plate' && /^[A-Za-z0-9 -]{5,20}$/.test(segments[1])) || (segments[0] === 'vehicles' && id(segments[1])))) || (request.method === 'POST' && segments.length === 3 && segments[0] === 'vehicles' && id(segments[1]) && segments[2] === 'visits');
-  if (!valid) return NextResponse.json({ message: 'Ruta inválida' }, { status: 400 });
+  const payment = request.method === 'POST' && segments.length === 5 && segments[0] === 'vehicles' && id(segments[1]) && segments[2] === 'visits' && id(segments[3]) && segments[4] === 'payment';
+  if (!valid && !payment) return NextResponse.json({ message: 'Ruta inválida' }, { status: 400 });
   const token = request.cookies.get(tenantCookie(slug))?.value;
   if (!token) return NextResponse.json({ message: 'Iniciá sesión' }, { status: 401 });
   try {

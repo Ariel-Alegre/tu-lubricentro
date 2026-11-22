@@ -17,25 +17,23 @@
 .customer-table-name { display: grid; gap: 4px; }
 .customer-table-name strong { color: #34475e; font-size: 14px; font-weight: 600; }
 .customer-table-name span { color: #718096; font-size: 12px; }
-.customer-history-modal .ant-modal-body { max-height: 65vh; overflow-y: auto; padding-top: 18px; }
 .customer-history-modal .ant-alert { margin-bottom: 20px; }
 .customer-history-modal .ant-btn-primary { background: #155fa0; border-color: #155fa0; }
 .customer-plate { display: inline-flex; gap: 8px; align-items: center; font-weight: 700; letter-spacing: .08em; color: #155fa0; }
-.customer-summary { margin-bottom: 32px; padding-bottom: 24px; border-bottom: 1px solid #edf0f5; overflow-wrap: anywhere; }
-.customer-summary h2 { margin: 10px 0 4px; font-size: 22px; color: #24354d; }
-.customer-summary p { color: #718096; margin: 0 0 8px; }
-.customer-summary > .ant-btn { display: flex; margin-top: 18px; }
-.customer-visit { padding: 0 0 18px 8px; overflow-wrap: anywhere; }
-.customer-visit-date { font-size: 13px; color: #718096; }
-.customer-visit h3 { font-size: 16px; color: #24354d; margin: 8px 0 12px; }
-.customer-visit p { white-space: pre-wrap; color: #718096; margin-top: 12px; }
-.customer-visit-products { display: flex; flex-wrap: wrap; gap: 8px; color: #718096; }
-.customer-visit-products .ant-tag { white-space: normal; overflow-wrap: anywhere; max-width: 100%; }
 .customers-loading { padding: 48px 0; text-align: center; }
 .customer-modal .ant-alert { margin-bottom: 20px; }
 .customer-modal h3 { margin: 12px 0; color: #24354d; }
 .customer-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0 16px; }
 .customer-modal input, .customer-modal textarea { font-size: 16px; }
+.customer-charge-preview { background: #f1f6fc; border: 1px solid #dce8f4; padding: 16px; border-radius: 10px; display: grid; gap: 8px; margin-bottom: 16px; }
+.customer-charge-preview > span { color: #607c99; font-size: 12px; }
+.customer-charge-preview > strong { color: #155fa0; font-size: 24px; }
+.customer-charge-preview small { color: #748396; line-height: 1.6; }
+.payment-attention { display: grid; gap: 8px; padding: 16px; background: #f1f6fc; border-radius: 10px; margin: 18px 0; }
+.payment-attention strong { color: #243b55; overflow-wrap: anywhere; }
+.payment-attention span { color: #748396; font-size: 13px; }
+.payment-attention p { color: #155fa0; font-size: 24px; font-weight: 700; margin: 0; }
+.customer-payment-modal .ant-btn-primary { background: #155fa0; border-color: #155fa0; }
 @media (max-width: 600px) {
   .customer-form-grid { grid-template-columns: minmax(0, 1fr); }
   .customers-search .ant-input-search-btn { padding-inline: 12px; }

@@ -23,7 +23,7 @@ test('clientes e historial por patente: PostgreSQL real en memoria, aislamiento,
     const ready = once(socket, guest ? 'profile:ready' : 'session:ready', { signal: AbortSignal.timeout(5000) }); socket.connect(); await ready; return socket;
   }
   const req = (suffix = '', method = 'GET', body, owner = 0, token = tokens[owner]) => fetch(`${base}/api/tenant/${accounts[owner].slug}/customers${suffix}`, { method, headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: body ? JSON.stringify(body) : undefined });
-  const visit = (overrides = {}) => ({ solicitudId: randomUUID(), fecha: '2026-11-22', servicio: 'Cambio de aceite', productos: ['Aceite 10W-40', 'Filtro'], kilometraje: 120000, observaciones: 'Próximo control a los 130000 km', ...overrides });
+  const visit = (overrides = {}) => ({ solicitudId: randomUUID(), fecha: '2026-11-22', servicio: 'Cambio de aceite', productos: ['Aceite 10W-40', 'Filtro'], kilometraje: 120000, observaciones: 'Próximo control a los 130000 km', monto: '18500.50', metodoPago: null, ...overrides });
   const registration = (overrides = {}) => ({ ...visit(), patente: 'ab 123-cd', nombre: 'Ana Cliente Privado', telefono: '1145678900', marca: 'Ford', modelo: 'Fiesta', ...overrides });
   try {
     const own = await socketFor(0); const other = await socketFor(1); const guest = await socketFor(0, true);
@@ -57,6 +57,29 @@ test('clientes e historial por patente: PostgreSQL real en memoria, aislamiento,
     assert.ok(ownChanges > 0); assert.equal(otherChanges, 1, 'solo recibe el evento de su propio registro'); assert.equal(publicChanges, 0, 'los invitados nunca reciben eventos de clientes');
     await assert.rejects(memory.methods.registerCustomerVehicle(accounts[0], registration({ patente: 'AA777BB', observaciones: 'x'.repeat(1001) })));
     assert.equal(await memory.methods.customerByPlate(accounts[0].id, 'AA777BB'), null, 'una falla revierte el alta completa');
+    const paymentPath = `/vehicles/${first.id}/visits/${first.visitas[0].id}/payment`;
+    response = await req(paymentPath, 'POST', { monto: '18500.50', metodoPago: 'efectivo' }, 1); assert.equal(response.status, 404, 'no cobra atenciones de otro comercio');
+    response = await req(paymentPath, 'POST', { monto: '18500.51', metodoPago: 'efectivo' }); assert.equal(response.status, 409, 'el cobro respeta el monto original');
+    response = await req(paymentPath, 'POST', { monto: '18500.50', metodoPago: null }); assert.equal(response.status, 400);
+    const changed = once(own, 'customers:changed', { signal: AbortSignal.timeout(5000) });
+    response = await req(paymentPath, 'POST', { monto: '18500.50', metodoPago: 'efectivo' }); assert.equal(response.status, 200); await changed;
+    let paid = (await response.json()).visitas.find((item) => item.id === first.visitas[0].id); assert.equal(paid.monto, '18500.50'); assert.equal(paid.metodoPago, 'efectivo');
+    response = await req(paymentPath, 'POST', { monto: '18500.50', metodoPago: 'efectivo' }); assert.equal(response.status, 200, 'reintentar el mismo pago es idempotente');
+    response = await req(paymentPath, 'POST', { monto: '18500.50', metodoPago: 'transferencia' }); assert.equal(response.status, 409, 'no sobrescribe pagos ya registrados');
+    for (const monto of [-1, '2.123', 'NaN', '1e3', null, undefined, true, '10000000000', '']) {
+      response = await req(`/vehicles/${first.id}/visits`, 'POST', visit({ monto })); assert.equal(response.status, 400);
+    }
+    response = await req(`/vehicles/${first.id}/visits`, 'POST', visit({ metodoPago: 'desconocido' })); assert.equal(response.status, 400);
+    for (const metodoPago of ['efectivo', 'transferencia', 'debito', 'credito', 'mercado_pago', 'otro']) {
+      response = await req(`/vehicles/${first.id}/visits`, 'POST', visit({ monto: '0.30', metodoPago })); assert.equal(response.status, 201);
+      assert.ok((await response.json()).visitas.some((item) => item.metodoPago === metodoPago && item.monto === '0.30'));
+    }
+    response = await req(`/vehicles/${first.id}/visits`, 'POST', visit({ monto: '23.45', servicio: 'Pendiente concurrente' })); const concurrentVisit = (await response.json()).visitas.find((item) => item.servicio === 'Pendiente concurrente');
+    const concurrentPayments = await Promise.all(['efectivo','transferencia'].map((metodoPago) => req(`/vehicles/${first.id}/visits/${concurrentVisit.id}/payment`, 'POST', { monto: '23.45', metodoPago }))); assert.deepEqual(concurrentPayments.map((item) => item.status).sort(), [200,409]);
+    const legacyId = randomUUID();
+    await memory.db.query(`INSERT INTO lubricentro_atenciones (id,lubricentro_id,vehiculo_id,solicitud_id,fecha,servicio) VALUES ($1,$2,$3,$4,'2026-01-01','Atención anterior')`, [legacyId, accounts[0].id, first.id, randomUUID()]);
+    response = await req(`/vehicles/${first.id}`); const legacy = (await response.json()).visitas.find((item) => item.id === legacyId); assert.equal(legacy.monto, null); assert.equal(legacy.metodoPago, null, 'no inventa importes ni pagos para atenciones anteriores');
+    response = await req(`/vehicles/${first.id}/visits/${legacyId}/payment`, 'POST', { monto: '200', metodoPago: 'otro' }); assert.equal(response.status, 200); paid = (await response.json()).visitas.find((item) => item.id === legacyId); assert.equal(paid.monto, '200.00');
     // La API revalida el estado; el store también lo comprueba dentro de la transacción.
     await memory.db.query("UPDATE panel_lubricentros SET estado='Inactivo' WHERE id=$1", [accounts[0].id]);
     await assert.rejects(memory.methods.addCustomerVisit(accounts[0], first.id, visit()), (cause) => cause.status === 403);

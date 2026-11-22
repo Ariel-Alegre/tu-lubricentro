@@ -1,0 +1,85 @@
+.customer-history-modal .ant-modal-title { color: #20364d; }
+.history-modal-title { display: flex; align-items: center; gap: 12px; padding-right: 28px; }
+.history-modal-title > .anticon { display: grid; place-items: center; width: 42px; height: 42px; border-radius: 12px; background: #eaf3fc; color: #155fa0; font-size: 21px; flex-shrink: 0; }
+.history-modal-title strong { display: block; font-size: 19px; font-weight: 700; }
+.history-modal-title small { display: block; margin-top: 3px; color: #748396; font-size: 13px; font-weight: 400; }
+.customer-history-content { padding: 24px; background: #f6f8fb; }
+.customer-history-modal .customer-summary { background: #fff; border: 1px solid #dee8f3; border-top: 3px solid #155fa0; border-radius: 14px; padding: 22px; }
+.history-identity { display: flex; align-items: center; gap: 14px; }
+.history-vehicle-icon { display: grid; place-items: center; width: 58px; height: 58px; flex-shrink: 0; color: #155fa0; background: #edf5fc; border-radius: 16px; font-size: 28px; }
+.history-identity-copy { flex: 1; min-width: 0; }
+.history-eyebrow { font-size: 10px; font-weight: 700; letter-spacing: .09em; color: #788a9f; }
+.customer-history-modal .customer-summary h2 { margin: 4px 0 5px; color: #1f344b; font-size: 24px; font-weight: 700; line-height: 1.25; overflow-wrap: anywhere; }
+.customer-history-modal .customer-summary p { margin: 0; color: #748396; font-size: 14px; overflow-wrap: anywhere; }
+.customer-history-modal .customer-plate { margin: 0; padding: 7px 12px; background: #eef5fc; border: 1px solid #d3e3f4; border-radius: 7px; color: #155fa0; font-size: 14px; font-weight: 700; letter-spacing: .08em; flex-shrink: 0; }
+.history-summary-actions { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding-top: 18px; margin-top: 18px; border-top: 1px solid #edf1f6; }
+.history-phone { display: inline-flex; align-items: center; gap: 9px; color: #426182; font-size: 14px; min-width: 0; overflow-wrap: anywhere; }
+.history-phone .anticon { color: #155fa0; background: #edf5fc; border-radius: 50%; padding: 8px; font-size: 15px; }
+.history-no-phone { font-size: 13px; color: #788a9f; }
+.customer-history-modal .history-summary-actions .ant-btn { height: 42px; padding-inline: 18px; border-radius: 8px; font-weight: 600; background: #155fa0; box-shadow: 0 3px 7px #155fa01a; }
+.history-overview { display: grid; grid-template-columns: .8fr 1fr 1.1fr; gap: 12px; margin: 16px 0 26px; }
+.history-overview > div { min-width: 0; padding: 14px 16px; border: 1px solid #e6ebf2; border-radius: 10px; background: white; }
+.history-overview dt { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #748396; }
+.history-overview dt .anticon { color: #7893af; }
+.history-overview dd { margin: 9px 0 0; color: #243b55; font-size: 18px; font-weight: 700; overflow-wrap: anywhere; }
+.history-overview dd small { display: inline-block; margin-left: 5px; font-size: 11px; color: #8a98aa; font-weight: 400; }
+.history-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 14px; }
+.history-section-heading h3 { margin: 0; color: #243b55; font-size: 16px; font-weight: 700; }
+.history-section-heading > span { color: #8492a3; font-size: 11px; }
+.history-cards { display: grid; gap: 14px; margin: 0; padding: 0; list-style: none; }
+.customer-history-modal .customer-visit { background: #fff; border: 1px solid #e2e9f2; border-radius: 12px; padding: 20px; overflow-wrap: anywhere; }
+.history-visit-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px; }
+.customer-history-modal .customer-visit-date { display: inline-flex; align-items: center; gap: 7px; color: #647c98; font-size: 12px; }
+.customer-history-modal .history-latest-tag { background: #edf5fc; color: #155fa0; border: 0; border-radius: 5px; font-size: 10px; margin: 0; }
+.customer-history-modal .customer-visit > h3 { margin: 13px 0 7px; color: #243b55; font-size: 18px; line-height: 1.4; font-weight: 650; }
+.history-mileage { display: inline-flex; align-items: center; gap: 6px; color: #8492a3; font-size: 12px; }
+.history-products { margin-top: 18px; }
+.history-products h4 { margin: 0 0 9px; display: flex; align-items: center; gap: 6px; font-size: 11px; color: #748396; font-weight: 500; }
+.customer-visit-products { display: flex; flex-wrap: wrap; gap: 7px; color: #8492a3; font-size: 12px; }
+.customer-history-modal .customer-visit-products .ant-tag { padding: 3px 9px; background: #f1f6fc; border: 1px solid #e1ebf7; border-radius: 6px; color: #476886; font-size: 12px; margin: 0; white-space: normal; overflow-wrap: anywhere; max-width: 100%; }
+.history-notes { margin-top: 16px; padding: 12px 14px; background: #f8fafc; border-left: 3px solid #c8d9eb; border-radius: 0 6px 6px 0; }
+.history-notes > span { display: flex; align-items: center; gap: 6px; color: #748396; font-size: 11px; font-weight: 600; }
+.history-notes p { margin: 6px 0 0; color: #536b86; font-size: 13px; line-height: 1.65; white-space: pre-wrap; }
+.history-modal-footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.history-modal-footer > span { font-size: 12px; color: #8492a3; }
+.history-modal-footer .ant-btn { height: 38px; border-radius: 8px; }
+.history-balance { display: flex; align-items: center; justify-content: space-between; gap: 16px; background: #fff; border: 1px solid #e2e9f2; padding: 16px; border-radius: 10px; margin: -8px 0 24px; }
+.history-balance.has-pending { background: #fffbf3; border-color: #f3dfb4; }
+.history-balance > div { display: grid; gap: 6px; }
+.history-balance span { font-size: 12px; color: #748396; }
+.history-balance strong { color: #243b55; font-size: 23px; }
+.history-balance small { display: block; margin-top: 6px; font-size: 11px; }
+.history-charge { display: flex; align-items: center; justify-content: space-between; gap: 16px; border-top: 1px solid #edf1f6; margin-top: 20px; padding-top: 16px; }
+.history-charge > div { display: flex; flex-direction: column; align-items: flex-start; gap: 8px; min-width: 0; }
+.history-charge > div > span:first-child { color: #748396; font-size: 11px; }
+.history-charge strong { font-size: 21px; color: #243b55; overflow-wrap: anywhere; }
+.history-charge .ant-tag { white-space: normal; }
+.history-charge-button { color: #155fa0; border-color: #b6cce4; }
+@media (max-width: 600px) {
+  .history-modal-title strong { font-size: 17px; }
+  .history-modal-title small { font-size: 11px; }
+  .history-modal-title > .anticon { width: 36px; height: 36px; border-radius: 10px; font-size: 18px; }
+  .customer-history-content { padding: 16px; }
+  .customer-history-modal .customer-summary { padding: 16px; }
+  .history-identity { gap: 10px; align-items: flex-start; }
+  .history-identity-copy { flex: 1; }
+  .history-vehicle-icon { display: none; }
+  .customer-history-modal .customer-summary h2 { font-size: 20px; }
+  .customer-history-modal .customer-plate { margin: 0; padding: 4px 8px; font-size: 11px; }
+  .history-summary-actions { flex-direction: column; align-items: stretch; gap: 12px; margin-top: 12px; padding-top: 12px; }
+  .history-phone { font-size: 13px; }
+  .history-summary-actions .ant-btn { width: 100%; }
+  .history-overview { grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 22px; }
+  .history-overview > div { padding: 12px; }
+  .history-overview > div:first-child { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; }
+  .history-overview > div:first-child dd { margin: 0; }
+  .history-overview dd { font-size: 15px; }
+  .history-overview dt { font-size: 10px; }
+  .history-section-heading { align-items: flex-start; flex-direction: column; gap: 5px; }
+  .customer-history-modal .customer-visit { padding: 16px; }
+  .customer-history-modal .customer-visit > h3 { font-size: 16px; }
+  .history-modal-footer > span { display: none; }
+  .history-modal-footer { justify-content: flex-end; }
+  .history-charge, .history-balance { align-items: stretch; flex-direction: column; }
+  .history-charge-button { width: 100%; }
+}
