@@ -1,0 +1,8 @@
+.customer-qr-intro { margin-top: 20px; text-align: center; }
+.customer-qr-intro strong { display: inline-block; padding: 6px 14px; background: #edf5fc; color: #155fa0; border-radius: 6px; letter-spacing: .08em; }
+.customer-qr-intro p { color: #748396; line-height: 1.65; font-size: 13px; margin-top: 12px; }
+.customer-qr-code { display: flex; justify-content: center; margin: 20px 0; }
+.customer-qr-actions { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 16px; justify-content: center; }
+.customer-qr-modal .ant-btn-primary { background: #155fa0; border-color: #155fa0; }
+.customer-qr-note { color: #748396; line-height: 1.6; font-size: 12px; margin-top: 14px; }
+.customer-qr-loading { text-align: center; padding: 56px; }

@@ -1,10 +1,10 @@
 import { Button, Empty, Tag } from 'antd';
-import { CalendarOutlined, CarOutlined, DashboardOutlined, FileTextOutlined, HistoryOutlined, PhoneOutlined, PlusOutlined, ShoppingOutlined } from '@ant-design/icons';
+import { CalendarOutlined, CarOutlined, DashboardOutlined, FileTextOutlined, HistoryOutlined, PhoneOutlined, PlusOutlined, QrcodeOutlined, ShoppingOutlined } from '@ant-design/icons';
 import { visitDate, paymentLabel, amountInCents, type Visit, type VehicleHistory } from '../../lib/customers';
 import { formatPrice } from '../../lib/products';
 import './customer-history.css';
 
-export default function CustomerHistory({ history, onAdd, onCharge }: { history: VehicleHistory; onAdd: () => void; onCharge: (visit: Visit) => void }) {
+export default function CustomerHistory({ history, onAdd, onCharge, onShare }: { history: VehicleHistory; onAdd: () => void; onCharge: (visit: Visit) => void; onShare: () => void }) {
   const latest = history.visitas[0];
   const mileage = history.visitas.find((visit) => visit.kilometraje !== null)?.kilometraje;
   const vehicle = [history.marca, history.modelo].filter(Boolean).join(' ') || 'Vehículo registrado';
@@ -21,7 +21,7 @@ export default function CustomerHistory({ history, onAdd, onCharge }: { history:
       </div>
       <div className="history-summary-actions">
         {history.telefono ? <a className="history-phone" href={`tel:${history.telefono.replace(/[^\d+]/g, '')}`}><PhoneOutlined /><span>{history.telefono}</span></a> : <span className="history-no-phone">Sin teléfono registrado</span>}
-        <Button type="primary" icon={<PlusOutlined />} onClick={onAdd}>Agregar atención</Button>
+        <div className="history-action-buttons"><Button type="primary" icon={<PlusOutlined />} onClick={onAdd}>Agregar atención</Button><Button icon={<QrcodeOutlined />} onClick={onShare}>QR del cliente</Button></div>
       </div>
     </section>
 

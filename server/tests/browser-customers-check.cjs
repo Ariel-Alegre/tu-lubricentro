@@ -112,20 +112,16 @@ const { randomUUID } = require('node:crypto');
     const tableShot = await call('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true }); fs.writeFileSync(path.join(process.env.TEMP, 'lubricentro-customers-table-mobile.png'), Buffer.from(tableShot.data, 'base64'));
     assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'), true, 'tabla móvil sin desbordes');
     assert.equal(await evaluate('(()=>{const b=document.querySelector(".customers-list .customer-history-button");return b.getBoundingClientRect().right<=b.closest("td").getBoundingClientRect().right})()'), true, 'el botón de historial entra completo en la celda');
-    // Se puede elegir un cliente ya registrado al dar de alta otro vehículo.
+    // El formulario de registro siempre carga un cliente nuevo, sin selector.
     await evaluate('document.querySelector(".tenant-products-title button").click()');
-    await waitFor('Boolean(document.querySelector(".customer-modal #clienteId"))');
-    await evaluate('document.querySelector(".customer-modal #clienteId").focus()');
-    await call('Input.dispatchKeyEvent', { type: 'keyDown', key: 'ArrowDown', code: 'ArrowDown', windowsVirtualKeyCode: 40 });
-    await call('Input.dispatchKeyEvent', { type: 'keyUp', key: 'ArrowDown', code: 'ArrowDown', windowsVirtualKeyCode: 40 });
-    await waitFor('Boolean(document.querySelector(".ant-select-item-option"))');
-    await evaluate('[...document.querySelectorAll(".ant-select-item-option")].find(x=>x.textContent.includes("Ana García")).click()');
-    await waitFor('!document.querySelector(".customer-modal #nombre")');
+    await waitFor('document.querySelector(".customer-modal #nombre")?.getBoundingClientRect().width>0');
+    assert.equal(await evaluate('Boolean(document.querySelector(".customer-modal #clienteId"))'), false);
+    await value('.customer-modal #nombre', 'Juan Pérez');
     await value('.customer-modal #patente', 'ABC123'); await value('.customer-modal #servicio', 'Control de niveles');
     await value('.customer-modal #monto', '0');
     await evaluate('document.querySelector(".customer-modal .ant-modal-footer .ant-btn-primary").click()');
     await waitFor('document.querySelector(".customer-summary .customer-plate")?.textContent==="ABC123"');
-    const counts = await evaluate('(async()=>{const r=await fetch("/api/tenant/el-cano/customers");const d=await r.json();return [d.clientes.length,d.vehiculos.length]})()'); assert.deepEqual(counts, [1, 2]);
+    const counts = await evaluate('(async()=>{const r=await fetch("/api/tenant/el-cano/customers");const d=await r.json();return [d.clientes.length,d.vehiculos.length]})()'); assert.deepEqual(counts, [2, 2]);
     await evaluate('document.querySelector(".customer-history-modal .ant-modal-footer button").click()');
     await waitFor('!document.querySelector(".customer-history-modal") || document.querySelector(".customer-history-modal").getBoundingClientRect().width===0');
     for (let i = 0; i < 9; i++) {
@@ -139,6 +135,6 @@ const { randomUUID } = require('node:crypto');
     await evaluate('document.querySelector(".customer-history-modal .ant-modal-footer button").click()');
     await waitFor('!document.querySelector(".customer-history-modal") || document.querySelector(".customer-history-modal").getBoundingClientRect().width===0');
     assert.equal(await evaluate('document.querySelector(".customers-list .ant-pagination-item-active")?.getAttribute("title")'), '2', 'cerrar el historial conserva la página de la tabla');
-    console.log('PASS: tabla de clientes, fila y botón abren historial, conserva filtro al cerrar/agregar atención, búsqueda por patente, socket y otro vehículo del cliente. Escritorio/móvil sin desbordes. PostgreSQL en memoria.');
+    console.log('PASS: registro de clientes nuevos sin selector, búsqueda por patente para clientes existentes, historial, cobros y socket. Escritorio/móvil sin desbordes. PostgreSQL en memoria.');
   } finally { ws.close(); }
 })().catch((error) => { console.error(error.message); process.exitCode = 1; });

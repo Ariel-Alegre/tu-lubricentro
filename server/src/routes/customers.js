@@ -48,7 +48,7 @@ router.post('/', async (req, res) => {
     const { clienteId, nombre = '', telefono = '', marca = '', modelo = '' } = body;
     if (!patente || !text(nombre, 120, !clienteId) || (clienteId && !validId(clienteId)) || !text(telefono, 40) || !text(marca, 80) || !text(modelo, 80)) return res.status(400).json({ message: 'Completá la patente y el cliente con datos válidos' });
     const record = await store.registerCustomerVehicle(req.tenant, { ...data, patente, clienteId: clienteId || null, nombre: nombre.trim(), telefono: telefono.trim(), marca: marca.trim(), modelo: modelo.trim() });
-    publishCustomersChange(req.tenant.id);
+    publishCustomersChange(req.tenant.id, record.id);
     res.status(201).set('Cache-Control', 'no-store').json(record);
   } catch (cause) { error(res, cause); }
 });
@@ -56,15 +56,20 @@ router.post('/vehicles/:id/visits', async (req, res) => {
   if (!validId(req.params.id)) return res.status(400).json({ message: 'Vehículo inválido' });
   try {
     const record = await store.addCustomerVisit(req.tenant, req.params.id, visit(req.body || {}));
-    publishCustomersChange(req.tenant.id);
+    publishCustomersChange(req.tenant.id, record.id);
     res.status(201).set('Cache-Control', 'no-store').json(record);
   } catch (cause) { error(res, cause); }
+});
+router.post('/vehicles/:id/share', async (req, res) => {
+  if (!validId(req.params.id)) return res.status(400).json({ message: 'Vehículo inválido' });
+  try { res.set('Cache-Control', 'no-store').json(await store.shareCustomerHistory(req.tenant, req.params.id)); }
+  catch (cause) { error(res, cause); }
 });
 router.post('/vehicles/:id/visits/:visitId/payment', async (req, res) => {
   if (!validId(req.params.id) || !validId(req.params.visitId)) return res.status(400).json({ message: 'Atención inválida' });
   try {
     const record = await store.payCustomerVisit(req.tenant, req.params.id, req.params.visitId, payment(req.body || {}, true));
-    publishCustomersChange(req.tenant.id);
+    publishCustomersChange(req.tenant.id, record.id);
     res.set('Cache-Control', 'no-store').json(record);
   } catch (cause) { error(res, cause); }
 });

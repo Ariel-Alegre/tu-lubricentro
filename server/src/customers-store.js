@@ -1,4 +1,4 @@
-const { randomUUID } = require('crypto');
+const { randomUUID, randomBytes } = require('crypto');
 const schema = `
 CREATE TABLE IF NOT EXISTS lubricentro_clientes (
   id UUID PRIMARY KEY, lubricentro_id UUID NOT NULL REFERENCES panel_lubricentros(id) ON DELETE CASCADE,
@@ -22,6 +22,8 @@ CREATE TABLE IF NOT EXISTS lubricentro_atenciones (
 CREATE INDEX IF NOT EXISTS lubricentro_atenciones_historial_idx ON lubricentro_atenciones(lubricentro_id, vehiculo_id, fecha DESC, creada DESC);
 ALTER TABLE lubricentro_atenciones ADD COLUMN IF NOT EXISTS monto NUMERIC(12,2) CHECK (monto >= 0);
 ALTER TABLE lubricentro_atenciones ADD COLUMN IF NOT EXISTS metodo_pago VARCHAR(32) CHECK (metodo_pago IS NULL OR (metodo_pago IN ('efectivo','transferencia','debito','credito','mercado_pago','otro') AND monto IS NOT NULL));
+ALTER TABLE lubricentro_vehiculos ADD COLUMN IF NOT EXISTS history_token VARCHAR(64);
+CREATE UNIQUE INDEX IF NOT EXISTS lubricentro_vehiculos_history_token_unique ON lubricentro_vehiculos(history_token) WHERE history_token IS NOT NULL;
 `;
 
 const vehicleColumns = `v.id, v.patente, v.marca, v.modelo, c.id AS "clienteId", c.nombre, c.telefono`;
@@ -42,6 +44,24 @@ function methods({ database, transaction }) {
     await client.query(`INSERT INTO lubricentro_atenciones (id,lubricentro_id,vehiculo_id,solicitud_id,fecha,servicio,productos,kilometraje,observaciones,monto,metodo_pago) VALUES ($1,$2,$3,$4,$5,$6,$7::jsonb,$8,$9,$10,$11)`, [randomUUID(), account.id, vehicleId, data.solicitudId, data.fecha, data.servicio, JSON.stringify(data.productos), data.kilometraje, data.observaciones, data.monto ?? null, data.metodoPago ?? null]);
   }
   return {
+    async shareCustomerHistory(account, id) {
+      return transaction(async (client) => {
+        await authorized(client, account);
+        const record = (await client.query(`UPDATE lubricentro_vehiculos SET history_token=COALESCE(history_token,$1) WHERE lubricentro_id=$2 AND id=$3 RETURNING history_token AS token`, [randomBytes(32).toString('hex'), account.id, id])).rows[0];
+        if (!record) throw fail(404, 'Vehículo no encontrado');
+        return record;
+      });
+    },
+    async sharedVehicle(token) {
+      return (await (await database()).query(`SELECT v.id AS "vehicleId", v.lubricentro_id AS "ownerId", l.nombre AS lubricentro, l.slug, v.patente, v.marca, v.modelo FROM lubricentro_vehiculos v JOIN panel_lubricentros l ON l.id=v.lubricentro_id WHERE v.history_token=$1 AND l.estado='Activo'`, [token])).rows[0];
+    },
+    async publicCustomerHistory(token) {
+      const record = await this.sharedVehicle(token);
+      if (!record) return null;
+      const { vehicleId, ownerId, ...publicFields } = record;
+      const visits = (await (await database()).query(`SELECT id, to_char(fecha,'YYYY-MM-DD') AS fecha, servicio, productos, kilometraje FROM lubricentro_atenciones WHERE lubricentro_id=$1 AND vehiculo_id=$2 ORDER BY fecha DESC, creada DESC, id DESC`, [ownerId, vehicleId])).rows;
+      return { ...publicFields, visitas: visits };
+    },
     async payCustomerVisit(account, vehicleId, visitId, payment) {
       return transaction(async (client) => {
         await authorized(client, account);

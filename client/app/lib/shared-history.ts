@@ -1,0 +1,1 @@
+export type SharedHistory = { lubricentro: string; slug: string; patente: string; marca: string; modelo: string; visitas: { id: string; fecha: string; servicio: string; productos: string[]; kilometraje: number | null }[] };

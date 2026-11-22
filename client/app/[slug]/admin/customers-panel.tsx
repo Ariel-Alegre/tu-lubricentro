@@ -10,8 +10,9 @@ import { formatPrice } from '../../lib/products';
 import './products.css';
 import './customers.css';
 import CustomerHistory from './customer-history';
+import CustomerHistoryQR from './customer-history-qr';
 
-type Values = { patente?: string; clienteId?: string; nombre?: string; telefono?: string; marca?: string; modelo?: string; fecha: string; servicio: string; productos?: string[]; kilometraje?: number | null; observaciones?: string; monto: string; metodoPago: PaymentMethod | 'pendiente' };
+type Values = { patente?: string; nombre?: string; telefono?: string; marca?: string; modelo?: string; fecha: string; servicio: string; productos?: string[]; kilometraje?: number | null; observaciones?: string; monto: string; metodoPago: PaymentMethod | 'pendiente' };
 export default function CustomersPanel({ slug, nombre, version, onOpenMenu, onLogout }: { slug: string; nombre: string; version: number; onOpenMenu: () => void; onLogout: () => void }) {
   const router = useRouter();
   const [form] = Form.useForm<Values>();
@@ -20,11 +21,11 @@ export default function CustomersPanel({ slug, nombre, version, onOpenMenu, onLo
   const [paymentVisit, setPaymentVisit] = useState<Visit | null>(null);
   const [paymentSaving, setPaymentSaving] = useState(false);
   const [paymentError, setPaymentError] = useState('');
-  const customerId = Form.useWatch('clienteId', form);
   const [list, setList] = useState<CustomerList>({ clientes: [], vehiculos: [] });
   const [selectedId, setSelectedId] = useState('');
   const [history, setHistory] = useState<VehicleHistory | null>(null);
   const [historyOpen, setHistoryOpen] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [detailError, setDetailError] = useState('');
   const [loading, setLoading] = useState(true);
   const [detailLoading, setDetailLoading] = useState(false);
@@ -160,17 +161,16 @@ export default function CustomersPanel({ slug, nombre, version, onOpenMenu, onLo
         <Table<Vehicle> rowKey="id" tableLayout="fixed" columns={columns} dataSource={filtered} loading={loading} pagination={{ current: page, onChange: (value) => setPage(value), pageSize: 10, hideOnSinglePage: true, showSizeChanger: false }} onRow={(vehicle) => ({ onClick: () => viewHistory(vehicle.id) })} locale={{ emptyText: <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description={search ? 'No encontramos coincidencias.' : 'Todavía no registraste clientes.'} /> }} />
       </Card>
     </main>
-    <Modal className="customer-history-modal" title={<div className="history-modal-title"><HistoryOutlined /><div><strong>Historial del vehículo</strong><small>Todos los cuidados, en un solo lugar</small></div></div>} open={historyOpen && mode === null && !paymentVisit} onCancel={closeHistory} centered footer={<div className="history-modal-footer"><span>Atenciones ordenadas de la más reciente a la más antigua</span><Button onClick={closeHistory}>Cerrar historial</Button></div>} width={860} styles={{ container: { padding: 0, borderRadius: 16, overflow: 'hidden' }, header: { padding: '20px 24px', marginBottom: 0 }, body: { maxHeight: 'min(68vh, 720px)', overflowY: 'auto', padding: 0 }, footer: { marginTop: 0, padding: '16px 24px', borderTop: '1px solid #e9eef5' } }}>
+    <Modal className="customer-history-modal" title={<div className="history-modal-title"><HistoryOutlined /><div><strong>Historial del vehículo</strong><small>Todos los cuidados, en un solo lugar</small></div></div>} open={historyOpen && mode === null && !paymentVisit && !shareOpen} onCancel={closeHistory} centered footer={<div className="history-modal-footer"><span>Atenciones ordenadas de la más reciente a la más antigua</span><Button onClick={closeHistory}>Cerrar historial</Button></div>} width={860} styles={{ container: { padding: 0, borderRadius: 16, overflow: 'hidden' }, header: { padding: '20px 24px', marginBottom: 0 }, body: { maxHeight: 'min(68vh, 720px)', overflowY: 'auto', padding: 0 }, footer: { marginTop: 0, padding: '16px 24px', borderTop: '1px solid #e9eef5' } }}>
       {detailError && <Alert type="error" showIcon title={detailError} action={<Button onClick={() => { setDetailLoading(true); setReload((value) => value + 1); }}>Reintentar</Button>} />}
-      {detailLoading ? <div className="customers-loading"><Spin description="Cargando historial..." /></div> : history ? <CustomerHistory history={history} onAdd={() => open('visit')} onCharge={charge} /> : !detailError && <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Este vehículo todavía no tiene atenciones registradas." />}
+      {detailLoading ? <div className="customers-loading"><Spin description="Cargando historial..." /></div> : history ? <CustomerHistory history={history} onAdd={() => open('visit')} onCharge={charge} onShare={() => setShareOpen(true)} /> : !detailError && <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Este vehículo todavía no tiene atenciones registradas." />}
     </Modal>
     <Modal className="customer-modal" title={<div className="customer-form-title"><span>{mode === 'register' ? <CarOutlined /> : <ToolOutlined />}</span><div><strong>{mode === 'register' ? 'Registrar vehículo y primera atención' : `Nueva atención · ${history?.patente ?? ''}`}</strong><small>{mode === 'register' ? 'Cargá los datos una vez y seguí cada visita por patente.' : 'Agregá un nuevo trabajo al historial del vehículo.'}</small></div></div>} open={mode !== null} forceRender centered width={760} onCancel={() => { if (!saving) setMode(null); }} onOk={() => form.submit()} okText={mode === 'register' ? 'Registrar primera atención' : 'Guardar atención'} cancelText="Cancelar" confirmLoading={saving} cancelButtonProps={{ disabled: saving }} footer={(_, { OkBtn, CancelBtn }) => <div className="customer-form-footer"><div><span>Total de la atención</span><strong>{total != null && total !== '' ? formatPrice(String(total)) : 'Ingresá el monto'}</strong></div><div className="customer-form-footer-actions"><CancelBtn /><OkBtn /></div></div>} styles={{ container: { padding: 0, borderRadius: 16, overflow: 'hidden' }, header: { padding: '20px 24px', marginBottom: 0 }, body: { padding: '20px 24px', maxHeight: 'min(65dvh, calc(100dvh - 280px), 680px)', overflowY: 'auto', background: '#f6f8fb' }, footer: { marginTop: 0, padding: '16px 24px', borderTop: '1px solid #e9eef5' } }}>
       {formError && <Alert type="error" showIcon title={formError} />}
       <Form form={form} layout="vertical" onFinish={save} requiredMark={false} disabled={saving} scrollToFirstError={{ focus: true }}>
         {mode === 'register' && <>
-          <section className="customer-form-section"><div className="customer-form-section-heading"><UserOutlined /><div><h3>Datos del cliente</h3><p>Elegí un cliente existente o registrá uno nuevo.</p></div></div>
-          {list.clientes.length > 0 && <Form.Item name="clienteId" label="Cliente"><Select allowClear placeholder="Registrar un cliente nuevo" showSearch optionFilterProp="label" options={list.clientes.map((item) => ({ value: item.id, label: `${item.nombre}${item.telefono ? ` · ${item.telefono}` : ''}` }))} /></Form.Item>}
-          {!customerId && <div className="customer-form-grid"><Form.Item name="nombre" label="Nombre y apellido" rules={[{ required: true, whitespace: true, message: 'Ingresá el nombre del cliente' }, { max: 120 }]}><Input maxLength={120} /></Form.Item><Form.Item name="telefono" label="Teléfono (opcional)" rules={[{ max: 40 }]}><Input maxLength={40} /></Form.Item></div>}
+          <section className="customer-form-section"><div className="customer-form-section-heading"><UserOutlined /><div><h3>Datos del cliente nuevo</h3><p>Completá estos datos una sola vez. Si ya está registrado, buscalo por patente desde la tabla.</p></div></div>
+          <div className="customer-form-grid"><Form.Item name="nombre" label="Nombre y apellido" rules={[{ required: true, whitespace: true, message: 'Ingresá el nombre del cliente' }, { max: 120 }]}><Input maxLength={120} /></Form.Item><Form.Item name="telefono" label="Teléfono (opcional)" rules={[{ max: 40 }]}><Input maxLength={40} /></Form.Item></div>
           </section>
           <section className="customer-form-section"><div className="customer-form-section-heading"><CarOutlined /><div><h3>Datos del vehículo</h3><p>La patente te permitirá encontrar sus próximas visitas.</p></div></div>
           <Form.Item name="patente" label="Patente" normalize={normalizePlate} rules={[{ required: true, pattern: /^[A-Z0-9]{5,10}$/, message: 'Ingresá una patente válida: ABC123 o AB123CD' }]}><Input maxLength={10} placeholder="AB123CD" autoCapitalize="characters" /></Form.Item>
@@ -200,5 +200,6 @@ export default function CustomersPanel({ slug, nombre, version, onOpenMenu, onLo
         <Form.Item name="metodoPago" label="¿Con qué método paga?" rules={[{ required: true, message: 'Seleccioná el método de pago' }]}><Select placeholder="Seleccioná un método" options={paymentMethods} /></Form.Item>
       </Form>
     </Modal>
+    {history && <CustomerHistoryQR key={history.id} slug={slug} vehicleId={history.id} plate={history.patente} open={shareOpen} onClose={() => setShareOpen(false)} />}
   </div>;
 }

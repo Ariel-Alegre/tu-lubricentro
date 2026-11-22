@@ -16,7 +16,9 @@
 .history-phone { display: inline-flex; align-items: center; gap: 9px; color: #426182; font-size: 14px; min-width: 0; overflow-wrap: anywhere; }
 .history-phone .anticon { color: #155fa0; background: #edf5fc; border-radius: 50%; padding: 8px; font-size: 15px; }
 .history-no-phone { font-size: 13px; color: #788a9f; }
-.customer-history-modal .history-summary-actions .ant-btn { height: 42px; padding-inline: 18px; border-radius: 8px; font-weight: 600; background: #155fa0; box-shadow: 0 3px 7px #155fa01a; }
+.history-action-buttons { display: flex; gap: 8px; flex-wrap: wrap; }
+.customer-history-modal .history-summary-actions .ant-btn { height: 42px; padding-inline: 18px; border-radius: 8px; font-weight: 600; }
+.customer-history-modal .history-summary-actions .ant-btn-primary { background: #155fa0; box-shadow: 0 3px 7px #155fa01a; }
 .history-overview { display: grid; grid-template-columns: .8fr 1fr 1.1fr; gap: 12px; margin: 16px 0 26px; }
 .history-overview > div { min-width: 0; padding: 14px 16px; border: 1px solid #e6ebf2; border-radius: 10px; background: white; }
 .history-overview dt { display: flex; align-items: center; gap: 6px; font-size: 11px; color: #748396; }
@@ -69,6 +71,7 @@
   .history-summary-actions { flex-direction: column; align-items: stretch; gap: 12px; margin-top: 12px; padding-top: 12px; }
   .history-phone { font-size: 13px; }
   .history-summary-actions .ant-btn { width: 100%; }
+  .history-action-buttons { flex-direction: column; }
   .history-overview { grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 22px; }
   .history-overview > div { padding: 12px; }
   .history-overview > div:first-child { grid-column: 1 / -1; display: flex; justify-content: space-between; align-items: center; }
