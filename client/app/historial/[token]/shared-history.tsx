@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { io } from 'socket.io-client';
 import { CalendarOutlined, CarOutlined, DashboardOutlined, HistoryOutlined, ShoppingOutlined } from '@ant-design/icons';
 import type { SharedHistory } from '../../lib/shared-history';
+import { sharedHistoryPath } from '../../lib/shared-history';
 import { visitDate } from '../../lib/customers';
 import './shared-history.css';
 
@@ -12,6 +13,11 @@ export default function SharedHistoryView({ token, initial, initialError, socket
   const [history, setHistory] = useState(initial);
   const [error, setError] = useState(initialError);
   const [retry, setRetry] = useState(0);
+  useEffect(() => {
+    if (!history) return;
+    const canonical = sharedHistoryPath(history.slug, history.patente, token);
+    if (window.location.pathname + window.location.search !== canonical) window.history.replaceState(null, '', canonical);
+  }, [history, token]);
   useEffect(() => {
     let stopped = false; let running = false; let dirty = false; let generation = 0;
     let timer: ReturnType<typeof setTimeout> | undefined; let reconnect: ReturnType<typeof setTimeout> | undefined;

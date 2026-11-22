@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Alert, Button, Input, Modal, QRCode, Spin } from 'antd';
 import { CheckOutlined, CopyOutlined, DownloadOutlined, QrcodeOutlined } from '@ant-design/icons';
 import { useRouter } from 'next/navigation';
+import { sharedHistoryPath } from '../../lib/shared-history';
 import './customer-history-qr.css';
 
 export default function CustomerHistoryQR({ slug, vehicleId, plate, open, onClose }: { slug: string; vehicleId: string; plate: string; open: boolean; onClose: () => void }) {
@@ -19,10 +20,10 @@ export default function CustomerHistoryQR({ slug, vehicleId, plate, open, onClos
       if (response.status === 401 || response.status === 403) { router.replace('/login/admin?reason=revoked'); router.refresh(); }
       const data = await response.json();
       if (!response.ok || !/^[a-f0-9]{64}$/.test(data.token)) throw new Error(data.message || 'No se pudo generar el QR');
-      if (!controller.signal.aborted) { setLink(`${window.location.origin}/historial/${data.token}`); setError(''); }
+      if (!controller.signal.aborted) { setLink(`${window.location.origin}${sharedHistoryPath(slug, plate, data.token)}`); setError(''); }
     }).catch((cause) => { if (!controller.signal.aborted) setError(cause.message || 'No se pudo generar el QR'); });
     return () => controller.abort();
-  }, [slug, vehicleId, open, retry, router]);
+  }, [slug, vehicleId, plate, open, retry, router]);
   async function copy() {
     try { await navigator.clipboard.writeText(link); setCopied(true); }
     catch { setError('No se pudo copiar. Podés seleccionar y copiar el enlace que aparece debajo del QR.'); }
