@@ -27,6 +27,8 @@ const { randomUUID } = require('node:crypto');
   }
   try {
     await call('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1100, deviceScaleFactor: 1, mobile: false });
+    await call('Page.navigate', { url: 'http://localhost:3102/login/admin' });
+    await waitFor('location.origin==="http://localhost:3102" && Boolean(document.querySelector("form"))');
     await evaluate(`(async()=>{const r=await fetch('/api/tenant/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:'el-cano@example.test',password:'123456'})});if(!r.ok)throw new Error('Login falló')})()`);
     await call('Page.navigate', { url: 'http://localhost:3102/el-cano/admin' });
     await waitFor('(()=>{const item=[...document.querySelectorAll(".tenant-admin-sidebar .ant-menu-item")].find(x=>x.textContent==="Clientes");if(item)item.click();return location.pathname==="/el-cano/admin/clientes"})()');
@@ -44,6 +46,20 @@ const { randomUUID } = require('node:crypto');
     await evaluate('document.querySelector(".customer-modal .ant-modal-footer .ant-btn-primary").click()');
     await waitFor('document.querySelector(".customer-summary h2")?.textContent==="Ana García" && document.querySelectorAll(".customer-visit").length===1');
     assert.equal(await evaluate('document.querySelector(".customer-visit-products").textContent.includes("Aceite 10W-40")'), true);
+    await evaluate('document.querySelector(".customer-history-modal .ant-modal-footer button").click()');
+    await waitFor('!document.querySelector(".customer-history-modal") || document.querySelector(".customer-history-modal").getBoundingClientRect().width===0');
+    await waitFor('Boolean(document.querySelector(".customers-list .ant-table-tbody .ant-table-row"))');
+    // La fila y el botón abren el modal sin cambiar de página ni perder el filtro.
+    await value('#customer-search', 'Ana');
+    await evaluate('document.querySelector(".customers-list .customer-history-button").click()');
+    await waitFor('document.querySelector(".customer-summary h2")?.textContent==="Ana García"');
+    await evaluate('document.querySelector(".customer-history-modal .ant-modal-footer button").click()');
+    await waitFor('!document.querySelector(".customer-history-modal") || document.querySelector(".customer-history-modal").getBoundingClientRect().width===0');
+    assert.equal(await evaluate('document.querySelector("#customer-search").value'), 'Ana');
+    await evaluate('document.querySelector(".customers-list .ant-table-row").click()');
+    await waitFor('document.querySelector(".customer-summary h2")?.textContent==="Ana García"');
+    await evaluate('document.querySelector(".customer-history-modal .ant-modal-footer button").click()');
+    await waitFor('!document.querySelector(".customer-history-modal") || document.querySelector(".customer-history-modal").getBoundingClientRect().width===0');
     // La misma patente, escrita con guiones y espacios, abre el historial existente.
     await value('#customer-search', 'ab 123-cd'); await evaluate('document.querySelector(".customers-search .ant-input-search-btn").click()');
     await waitFor('document.querySelector(".customer-summary .customer-plate")?.textContent==="AB123CD"');
@@ -53,6 +69,7 @@ const { randomUUID } = require('node:crypto');
     await value('.customer-modal #servicio', 'Cambio de filtros'); await value('.customer-modal #observaciones', 'Revisión general', true);
     await evaluate('document.querySelector(".customer-modal .ant-modal-footer .ant-btn-primary").click()');
     await waitFor('document.querySelectorAll(".customer-visit").length===2');
+    assert.equal(await evaluate('document.querySelector("#customer-search").value'), 'ab 123-cd', 'agregar una atención conserva el filtro');
     await evaluate('window.__customerCheck="same-document"');
     const listing = await evaluate('(async()=>{const r=await fetch("/api/tenant/el-cano/customers");return r.json()})()');
     assert.equal(listing.clientes.length, 1); assert.equal(listing.vehiculos.length, 1);
@@ -66,6 +83,11 @@ const { randomUUID } = require('node:crypto');
       assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'), true, `sin desbordes en ${label}`);
       const shot = await call('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true }); fs.writeFileSync(path.join(process.env.TEMP, `lubricentro-customers-${label}.png`), Buffer.from(shot.data, 'base64'));
     }
+    await evaluate('document.querySelector(".customer-history-modal .ant-modal-footer button").click()');
+    await waitFor('!document.querySelector(".customer-history-modal") || document.querySelector(".customer-history-modal").getBoundingClientRect().width===0');
+    const tableShot = await call('Page.captureScreenshot', { format: 'png', captureBeyondViewport: true }); fs.writeFileSync(path.join(process.env.TEMP, 'lubricentro-customers-table-mobile.png'), Buffer.from(tableShot.data, 'base64'));
+    assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'), true, 'tabla móvil sin desbordes');
+    assert.equal(await evaluate('(()=>{const b=document.querySelector(".customers-list .customer-history-button");return b.getBoundingClientRect().right<=b.closest("td").getBoundingClientRect().right})()'), true, 'el botón de historial entra completo en la celda');
     // Se puede elegir un cliente ya registrado al dar de alta otro vehículo.
     await evaluate('document.querySelector(".tenant-products-title button").click()');
     await waitFor('Boolean(document.querySelector(".customer-modal #clienteId"))');
@@ -79,6 +101,19 @@ const { randomUUID } = require('node:crypto');
     await evaluate('document.querySelector(".customer-modal .ant-modal-footer .ant-btn-primary").click()');
     await waitFor('document.querySelector(".customer-summary .customer-plate")?.textContent==="ABC123"');
     const counts = await evaluate('(async()=>{const r=await fetch("/api/tenant/el-cano/customers");const d=await r.json();return [d.clientes.length,d.vehiculos.length]})()'); assert.deepEqual(counts, [1, 2]);
-    console.log('PASS: menú Clientes, alta inicial con producto, búsqueda por patente, atención sin repetir cliente, historial por socket y otro vehículo del mismo cliente. Escritorio/móvil sin desbordes. PostgreSQL en memoria.');
+    await evaluate('document.querySelector(".customer-history-modal .ant-modal-footer button").click()');
+    await waitFor('!document.querySelector(".customer-history-modal") || document.querySelector(".customer-history-modal").getBoundingClientRect().width===0');
+    for (let i = 0; i < 9; i++) {
+      const created = await fetch('http://127.0.0.1:3101/api/tenant/el-cano/customers', { method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: JSON.stringify({ clienteId: listing.clientes[0].id, patente: `QA${String(i).padStart(4,'0')}`, solicitudId: randomUUID(), fecha: '2026-11-22', servicio: 'Control de niveles', productos: [] }) }); assert.equal(created.status, 201);
+    }
+    await waitFor('Boolean(document.querySelector(".customers-list .ant-pagination-item-2"))');
+    await evaluate('document.querySelector(".customers-list .ant-pagination-item-2 a").click()');
+    await waitFor('document.querySelector(".customers-list .ant-pagination-item-active")?.getAttribute("title")==="2"');
+    await evaluate('document.querySelector(".customers-list .customer-history-button").click()');
+    await waitFor('Boolean(document.querySelector(".customer-summary"))');
+    await evaluate('document.querySelector(".customer-history-modal .ant-modal-footer button").click()');
+    await waitFor('!document.querySelector(".customer-history-modal") || document.querySelector(".customer-history-modal").getBoundingClientRect().width===0');
+    assert.equal(await evaluate('document.querySelector(".customers-list .ant-pagination-item-active")?.getAttribute("title")'), '2', 'cerrar el historial conserva la página de la tabla');
+    console.log('PASS: tabla de clientes, fila y botón abren historial, conserva filtro al cerrar/agregar atención, búsqueda por patente, socket y otro vehículo del cliente. Escritorio/móvil sin desbordes. PostgreSQL en memoria.');
   } finally { ws.close(); }
 })().catch((error) => { console.error(error.message); process.exitCode = 1; });
