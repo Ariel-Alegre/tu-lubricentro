@@ -75,6 +75,11 @@ async function transaction(work) {
 }
 
 module.exports = {
+  async changePassword(account, passwordHash) {
+    return (await (await database()).query(`UPDATE panel_lubricentros SET password_hash=$1, auth_version=auth_version+1
+      WHERE id=$2 AND estado='Activo' AND auth_version=$3 AND password_hash=$4 RETURNING id`,
+    [passwordHash, account.id, account.auth_version, account.password_hash])).rows[0];
+  },
   ...customers.methods({ database, transaction }),
   async listProducts(id) {
     return (await (await database()).query(`SELECT ${PRODUCT_COLUMNS} FROM lubricentro_productos WHERE lubricentro_id=$1 ORDER BY nombre, id`, [id])).rows;

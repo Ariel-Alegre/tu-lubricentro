@@ -5,7 +5,7 @@ import { tenantCookie } from '../../../../lib/tenant-session';
 async function handle(request: NextRequest, context: { params: Promise<{ slug: string; action: string }> }) {
   const { slug, action } = await context.params;
   if (!/^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(slug) || slug.length > 63) return NextResponse.json({ message: 'Dirección inválida' }, { status: 400 });
-  if (!(request.method === 'GET' && action === 'session') && !(request.method === 'POST' && ['login', 'logout', 'socket'].includes(action))) {
+  if (!(request.method === 'GET' && action === 'session') && !(request.method === 'POST' && ['login', 'logout', 'socket', 'password'].includes(action))) {
     return NextResponse.json({ message: 'Ruta inválida' }, { status: 405 });
   }
   if (request.method === 'POST' && request.headers.get('origin') !== request.nextUrl.origin) {
@@ -24,7 +24,7 @@ async function handle(request: NextRequest, context: { params: Promise<{ slug: s
     const response = await fetch(`${API_URL}/api/tenant/${encodeURIComponent(slug)}/${action}`, {
       method: request.method,
       headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
-      body: action === 'login' ? JSON.stringify(await request.json()) : undefined,
+      body: action === 'login' || action === 'password' ? JSON.stringify(await request.json()) : undefined,
       cache: 'no-store', signal: AbortSignal.timeout(10000),
     });
     if (!response.headers.get('content-type')?.includes('application/json')) throw new Error('Backend no disponible');
@@ -37,6 +37,11 @@ async function handle(request: NextRequest, context: { params: Promise<{ slug: s
     if (action === 'login') {
       const result = NextResponse.json({ ok: true });
       result.cookies.set(name, data.token, { ...options, maxAge: 60 * 60 * 24 * 400 });
+      return result;
+    }
+    if (action === 'password') {
+      const result = NextResponse.json({ ok: true }, { headers: { 'Cache-Control': 'no-store' } });
+      result.cookies.set(name, '', { ...options, maxAge: 0 });
       return result;
     }
     return NextResponse.json(action === 'socket' ? { ticket: data.ticket, url: process.env.SOCKET_PUBLIC_URL || API_URL } : data, { headers: { 'Cache-Control': 'no-store' } });

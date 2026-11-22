@@ -1,10 +1,10 @@
 const { Router } = require('express');
 const store = require('../lubricentros-store');
 const { validSlug } = require('../slug');
-const { signAccount, verifyPassword, requireTenant, publicAccount } = require('../tenant-auth');
+const { signAccount, verifyPassword, hashPassword, requireTenant, publicAccount } = require('../tenant-auth');
 const router = Router();
 const bucket = require('../bucket');
-const { publishProfileChange } = require('../realtime');
+const { publishProfileChange, revokeTenant } = require('../realtime');
 const { receiveImage, convertImage, cleanup } = require('../image-upload');
 
 async function login(req, res) {
@@ -30,6 +30,20 @@ router.use('/:slug/customers', require('./customers'));
 
 router.get('/:slug/session', requireTenant, (req, res) => res.set('Cache-Control', 'no-store').json(publicAccount(req.tenant)));
 router.post('/:slug/socket', requireTenant, (req, res) => res.set('Cache-Control', 'no-store').json({ ticket: signAccount(req.tenant, true) }));
+router.post('/:slug/password', requireTenant, async (req, res) => {
+  const { currentPassword, newPassword } = req.body || {};
+  if (typeof currentPassword !== 'string' || !currentPassword || currentPassword.length > 128 || typeof newPassword !== 'string' || newPassword.length < 6 || newPassword.length > 128) {
+    return res.status(400).json({ message: 'Ingresá tu contraseña actual y una nueva de entre 6 y 128 caracteres' });
+  }
+  try {
+    if (!await verifyPassword(currentPassword, req.tenant.password_hash)) return res.status(400).json({ message: 'La contraseña actual es incorrecta' });
+    if (currentPassword === newPassword) return res.status(400).json({ message: 'Elegí una contraseña diferente a la actual' });
+    const saved = await store.changePassword(req.tenant, await hashPassword(newPassword));
+    if (!saved) return res.status(403).json({ message: 'Tu acceso cambió. Volvé a iniciar sesión.' });
+    revokeTenant(req.tenant.id, 'password-changed');
+    res.set('Cache-Control', 'no-store').json({ ok: true });
+  } catch { res.status(503).json({ message: 'No se pudo cambiar la contraseña. Intentá nuevamente.' }); }
+});
 router.post('/:slug/images/:kind', requireTenant, (req, res, next) => {
   if (!['cover', 'profile'].includes(req.params.kind)) return res.status(400).json({ message: 'Tipo de imagen inválido' });
   next();

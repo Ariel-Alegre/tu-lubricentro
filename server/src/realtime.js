@@ -73,10 +73,11 @@ function attachRealtime(httpServer) {
   return io;
 }
 
-function revokeTenant(id) {
+function revokeTenant(id, reason) {
   if (!io) return;
   const room = `lubricentro:${id}`;
-  io.to(room).emit('session:revoked');
+  if (reason === 'password-changed') io.to(room).emit('session:revoked', reason);
+  else io.to(room).emit('session:revoked');
   io.in(room).disconnectSockets(true);
 }
 

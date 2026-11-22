@@ -18,6 +18,12 @@ const accounts = ['el-cano', 'lorenzo'].map((slug, index) => ({
 store.findAccountById = async (id) => accounts.find((item) => item.id === id);
 store.findAccountBySlug = async (slug) => accounts.find((item) => item.slug === slug);
 store.findAccountByEmail = async (email) => accounts.find((item) => item.email === email);
+store.changePassword = async (current, passwordHash) => {
+  const account = accounts.find((item) => item.id === current.id && item.estado === 'Activo' && item.auth_version === current.auth_version && item.password_hash === current.password_hash);
+  if (!account) return undefined;
+  account.password_hash = passwordHash; account.auth_version++;
+  return { id: account.id };
+};
 store.list = async () => accounts.map(publicAccount);
 store.create = async (data, passwordHash) => {
   const account = { ...data, id: require('node:crypto').randomUUID(), password_hash: passwordHash, auth_version: 0, estado: 'Activo', fechaAlta: new Date().toISOString() };

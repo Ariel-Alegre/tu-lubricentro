@@ -47,6 +47,7 @@ export default function TenantLogin() {
           <h1 id="tenant-login-title">Bienvenido de nuevo</h1>
           <p className="tenant-access-intro">Ingresá tus datos y continuá con tu lubricentro.</p>
           {params.get('reason') === 'revoked' && <Alert className="tenant-access-alert" type="warning" showIcon title="Tu acceso fue desactivado o modificado. Volvé a ingresar si ya fue habilitado." />}
+          {params.get('reason') === 'password-changed' && <Alert className="tenant-access-alert" type="success" showIcon title="La contraseña fue actualizada. Ingresá con tu nueva contraseña." />}
           {error && <Alert className="tenant-access-alert" type="error" showIcon title={error} />}
           <Form layout="vertical" onFinish={login} requiredMark={false}>
             <Form.Item label="Correo electrónico" name="email" rules={[{ required: true, type: 'email', message: 'Ingresá un correo válido' }]}>

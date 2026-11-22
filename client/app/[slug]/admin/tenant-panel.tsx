@@ -1,6 +1,6 @@
 'use client';
 import { Alert, Button, ConfigProvider, Drawer, Menu, Spin } from 'antd';
-import { AppstoreOutlined, ShoppingOutlined, TeamOutlined, ToolOutlined } from '@ant-design/icons';
+import { AppstoreOutlined, ShoppingOutlined, TeamOutlined, ToolOutlined, LockOutlined, SettingOutlined } from '@ant-design/icons';
 import Image from 'next/image';
 import { useEffect, useState, type ReactNode } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
@@ -9,6 +9,7 @@ import type { Tenant } from '../../lib/tenant-session';
 import './tenant-panel.css';
 import '../lubricentro.css';
 import { TenantPanelContext } from './tenant-panel-context';
+import ChangePassword from './change-password';
 
 export default function TenantPanel({ tenant: initialTenant, children }: { tenant: Tenant; children: ReactNode }) {
   const router = useRouter();
@@ -19,6 +20,7 @@ export default function TenantPanel({ tenant: initialTenant, children }: { tenan
   const [catalogVersion, setCatalogVersion] = useState(0);
   const [activeTab, setActiveTab] = useState('inicio');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [passwordOpen, setPasswordOpen] = useState(false);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState('');
   const slug = initialTenant.slug;
@@ -37,14 +39,14 @@ export default function TenantPanel({ tenant: initialTenant, children }: { tenan
     let revoked = false;
     let temporaryError = false;
     let socket: Socket | undefined;
-    async function revoke() {
+    async function revoke(reason = 'revoked') {
       if (cancelled || revoked) return;
       revoked = true;
       setConnected(false);
       socket?.disconnect();
       try { await fetch(`/api/tenant/${slug}/logout`, { method: 'POST' }); }
       catch { /* El servidor ya invalidó la sesión; continuar fuera del panel. */ }
-      finally { if (!cancelled) { router.replace('/login/admin?reason=revoked'); router.refresh(); } }
+      finally { if (!cancelled) { router.replace(`/login/admin?reason=${reason === 'password-changed' ? reason : 'revoked'}`); router.refresh(); } }
     }
     async function ticket() {
       const response = await fetch(`/api/tenant/${slug}/socket`, { method: 'POST', cache: 'no-store' });
@@ -118,10 +120,6 @@ export default function TenantPanel({ tenant: initialTenant, children }: { tenan
     } catch { setError('No se pudo cerrar sesión. Reintentá.'); }
   }
 
-  if (!connected) return <ConfigProvider theme={{ token: { colorPrimary: '#155fa0' } }}><div className="tenant-pending">
-    {error ? <><Alert type="warning" title={error} showIcon /><Button onClick={() => window.location.reload()}>Reintentar</Button></> : <Spin description="Verificando acceso y conexión..." />}
-  </div></ConfigProvider>;
-
   const navigation = <>
     <div className="tenant-brand"><Image src="/tu-lubricentro-logo.png" alt="" width={44} height={44} /><strong>Tu Lubricentro</strong></div>
     <Menu theme="light" className="tenant-navigation-menu" mode="inline" selectedKeys={[view === 'products' ? 'productos' : view === 'customers' ? 'clientes' : view === 'services' ? 'servicios' : 'inicio']} onClick={({ key }) => {
@@ -129,18 +127,26 @@ export default function TenantPanel({ tenant: initialTenant, children }: { tenan
       if (key === 'productos') router.push(`/${slug}/admin/productos`);
       else if (key === 'clientes') router.push(`/${slug}/admin/clientes`);
       else if (key === 'servicios') router.push(`/${slug}/admin/servicios`);
+      else if (key === 'password') setPasswordOpen(true);
       else { setActiveTab('inicio'); if (view !== 'profile') router.push(`/${slug}/admin`); }
     }} items={[
       { key: 'inicio', label: 'Mi lubricentro', icon: <AppstoreOutlined /> },
       { key: 'productos', label: 'Productos', icon: <ShoppingOutlined /> },
       { key: 'servicios', label: 'Servicios', icon: <ToolOutlined /> },
       { key: 'clientes', label: 'Clientes', icon: <TeamOutlined /> },
+      { key: 'configuracion', label: 'Configuración', icon: <SettingOutlined />, children: [
+        { key: 'password', label: 'Cambiar contraseña', icon: <LockOutlined /> },
+      ] },
     ]} />
     <div className="tenant-sidebar-footer"><strong>{tenant.nombre}</strong><span>Panel administrativo</span></div>
   </>;
 
   return <ConfigProvider theme={{ token: { colorPrimary: '#155fa0' } }}>
-    <div className="tenant-shell">
+    {!connected && <div className="tenant-pending">
+      {error ? <><Alert type="warning" title={error} showIcon /><Button onClick={() => window.location.reload()}>Reintentar</Button></> : <Spin description="Verificando acceso y conexión..." />}
+    </div>}
+    {/* Mantener children en el árbol permite validar y conservar las rutas durante la conexión. */}
+    <div className="tenant-shell" hidden={!connected} inert={!connected} style={!connected ? { display: 'none' } : undefined}>
       <aside className="tenant-sidebar tenant-admin-sidebar" aria-label="Menú administrativo">{navigation}</aside>
       <Drawer placement="left" size={270} title="Menú administrativo" open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} styles={{ body: { padding: 0, display: 'flex', flexDirection: 'column' } }}>{navigation}</Drawer>
       <TenantPanelContext.Provider value={{ tenant, imageVersion, customersVersion, catalogVersion, activeTab, onTabChange: setActiveTab, onOpenMenu: () => setMobileMenuOpen(true), onLogout: logout, onImageUpdated: (account) => {
@@ -149,5 +155,6 @@ export default function TenantPanel({ tenant: initialTenant, children }: { tenan
         <div className="tenant-main">{children}</div>
       </TenantPanelContext.Provider>
     </div>
+    <ChangePassword slug={slug} open={passwordOpen && connected} onClose={() => setPasswordOpen(false)} />
   </ConfigProvider>;
 }

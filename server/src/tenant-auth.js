@@ -1,5 +1,5 @@
 const jwt = require('jsonwebtoken');
-const { scrypt, timingSafeEqual } = require('crypto');
+const { scrypt, timingSafeEqual, randomBytes } = require('crypto');
 const { promisify } = require('util');
 const store = require('./lubricentros-store');
 const derive = promisify(scrypt);
@@ -38,6 +38,12 @@ async function verifyPassword(password, stored) {
   return timingSafeEqual(actual, Buffer.from(expected, 'hex'));
 }
 
+async function hashPassword(password) {
+  const salt = randomBytes(16).toString('hex');
+  const hash = await derive(password, salt, 64);
+  return `scrypt:${salt}:${hash.toString('hex')}`;
+}
+
 function publicAccount(account) {
   const { password_hash, auth_version, ...data } = account;
   return data;
@@ -54,4 +60,4 @@ async function requireTenant(req, res, next) {
   }
 }
 
-module.exports = { signAccount, authenticate, verifyPassword, publicAccount, requireTenant };
+module.exports = { signAccount, authenticate, verifyPassword, hashPassword, publicAccount, requireTenant };

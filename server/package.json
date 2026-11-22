@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node index.js",
     "dev": "nodemon -L index.js",
-    "test:tenant": "node --test tests/tenant-access.test.cjs",
+    "test:tenant": "node --test tests/tenant-access.test.cjs tests/tenant-password.test.cjs",
     "test:services": "node --test tests/services.test.cjs",
     "test:products": "node --test tests/products.test.cjs tests/product-stock.test.cjs",
     "test:realtime": "node --test tests/public-realtime.test.cjs tests/panel-realtime.test.cjs",
