@@ -1,7 +1,7 @@
 'use client';
 import { Alert, AutoComplete, Button, Card, Empty, Form, Input, InputNumber, Modal, Select, Spin, Table, Tag } from 'antd';
 import type { TableProps } from 'antd';
-import { HistoryOutlined, LogoutOutlined, MenuOutlined, PlusOutlined, SearchOutlined, UserOutlined } from '@ant-design/icons';
+import { CarOutlined, HistoryOutlined, LogoutOutlined, MenuOutlined, PlusOutlined, SearchOutlined, ToolOutlined, UserOutlined, WalletOutlined } from '@ant-design/icons';
 import Image from 'next/image';
 import { useEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -164,27 +164,32 @@ export default function CustomersPanel({ slug, nombre, version, onOpenMenu, onLo
       {detailError && <Alert type="error" showIcon title={detailError} action={<Button onClick={() => { setDetailLoading(true); setReload((value) => value + 1); }}>Reintentar</Button>} />}
       {detailLoading ? <div className="customers-loading"><Spin description="Cargando historial..." /></div> : history ? <CustomerHistory history={history} onAdd={() => open('visit')} onCharge={charge} /> : !detailError && <Empty image={Empty.PRESENTED_IMAGE_SIMPLE} description="Este vehículo todavía no tiene atenciones registradas." />}
     </Modal>
-    <Modal className="customer-modal" title={mode === 'register' ? 'Registrar vehículo y primera atención' : `Nueva atención · ${history?.patente ?? ''}`} open={mode !== null} forceRender width={640} onCancel={() => { if (!saving) setMode(null); }} onOk={() => form.submit()} okText={mode === 'register' ? 'Registrar primera atención' : 'Guardar atención'} cancelText="Cancelar" confirmLoading={saving} cancelButtonProps={{ disabled: saving }}>
+    <Modal className="customer-modal" title={<div className="customer-form-title"><span>{mode === 'register' ? <CarOutlined /> : <ToolOutlined />}</span><div><strong>{mode === 'register' ? 'Registrar vehículo y primera atención' : `Nueva atención · ${history?.patente ?? ''}`}</strong><small>{mode === 'register' ? 'Cargá los datos una vez y seguí cada visita por patente.' : 'Agregá un nuevo trabajo al historial del vehículo.'}</small></div></div>} open={mode !== null} forceRender centered width={760} onCancel={() => { if (!saving) setMode(null); }} onOk={() => form.submit()} okText={mode === 'register' ? 'Registrar primera atención' : 'Guardar atención'} cancelText="Cancelar" confirmLoading={saving} cancelButtonProps={{ disabled: saving }} footer={(_, { OkBtn, CancelBtn }) => <div className="customer-form-footer"><div><span>Total de la atención</span><strong>{total != null && total !== '' ? formatPrice(String(total)) : 'Ingresá el monto'}</strong></div><div className="customer-form-footer-actions"><CancelBtn /><OkBtn /></div></div>} styles={{ container: { padding: 0, borderRadius: 16, overflow: 'hidden' }, header: { padding: '20px 24px', marginBottom: 0 }, body: { padding: '20px 24px', maxHeight: 'min(65dvh, calc(100dvh - 280px), 680px)', overflowY: 'auto', background: '#f6f8fb' }, footer: { marginTop: 0, padding: '16px 24px', borderTop: '1px solid #e9eef5' } }}>
       {formError && <Alert type="error" showIcon title={formError} />}
-      <Form form={form} layout="vertical" onFinish={save} requiredMark={false} disabled={saving}>
+      <Form form={form} layout="vertical" onFinish={save} requiredMark={false} disabled={saving} scrollToFirstError={{ focus: true }}>
         {mode === 'register' && <>
-          <h3>Cliente y vehículo</h3><p className="customer-form-hint">Estos datos se cargan una sola vez. Las próximas visitas se buscan por patente.</p>
+          <section className="customer-form-section"><div className="customer-form-section-heading"><UserOutlined /><div><h3>Datos del cliente</h3><p>Elegí un cliente existente o registrá uno nuevo.</p></div></div>
           {list.clientes.length > 0 && <Form.Item name="clienteId" label="Cliente"><Select allowClear placeholder="Registrar un cliente nuevo" showSearch optionFilterProp="label" options={list.clientes.map((item) => ({ value: item.id, label: `${item.nombre}${item.telefono ? ` · ${item.telefono}` : ''}` }))} /></Form.Item>}
           {!customerId && <div className="customer-form-grid"><Form.Item name="nombre" label="Nombre y apellido" rules={[{ required: true, whitespace: true, message: 'Ingresá el nombre del cliente' }, { max: 120 }]}><Input maxLength={120} /></Form.Item><Form.Item name="telefono" label="Teléfono (opcional)" rules={[{ max: 40 }]}><Input maxLength={40} /></Form.Item></div>}
+          </section>
+          <section className="customer-form-section"><div className="customer-form-section-heading"><CarOutlined /><div><h3>Datos del vehículo</h3><p>La patente te permitirá encontrar sus próximas visitas.</p></div></div>
           <Form.Item name="patente" label="Patente" normalize={normalizePlate} rules={[{ required: true, pattern: /^[A-Z0-9]{5,10}$/, message: 'Ingresá una patente válida: ABC123 o AB123CD' }]}><Input maxLength={10} placeholder="AB123CD" autoCapitalize="characters" /></Form.Item>
           <div className="customer-form-grid"><Form.Item name="marca" label="Marca (opcional)"><Input maxLength={80} placeholder="Ej. Ford" /></Form.Item><Form.Item name="modelo" label="Modelo (opcional)"><Input maxLength={80} placeholder="Ej. Fiesta" /></Form.Item></div>
+          </section>
         </>}
-        <h3>Trabajo realizado</h3>
+        <section className="customer-form-section"><div className="customer-form-section-heading"><ToolOutlined /><div><h3>Trabajo realizado</h3><p>Indicá el servicio, los productos y los detalles de la atención.</p></div></div>
         <div className="customer-form-grid"><Form.Item name="fecha" label="Fecha" rules={[{ required: true, message: 'Elegí la fecha' }]}><Input type="date" /></Form.Item><Form.Item name="kilometraje" label="Kilometraje (opcional)"><InputNumber min={0} max={10000000} precision={0} suffix="km" style={{ width: '100%' }} /></Form.Item></div>
         <Form.Item name="servicio" label="Servicio realizado" rules={[{ required: true, whitespace: true, message: 'Ingresá el servicio realizado' }, { max: 120 }]}><AutoComplete options={serviceOptions} filterOption={(input, option) => String(option?.value).toLocaleLowerCase('es').includes(input.toLocaleLowerCase('es'))} maxLength={120} placeholder="Elegí un servicio o escribí uno nuevo" /></Form.Item>
         <Form.Item name="productos" label="Productos utilizados" extra="Elegí del catálogo o escribí el nombre y presioná Enter. Dejalo vacío si no se utilizaron productos." rules={[{ type: 'array', max: 12, message: 'Podés agregar hasta 12 productos' }]}><Select mode="tags" options={productOptions} tokenSeparators={[';']} placeholder="Ej. Aceite 10W-40, filtro de aceite" /></Form.Item>
         <Form.Item name="observaciones" label="Observaciones (opcional)"><Input.TextArea rows={3} maxLength={1000} showCount /></Form.Item>
-        <h3>Cobro de la atención</h3>
+        </section>
+        <section className="customer-form-section customer-form-billing"><div className="customer-form-section-heading"><WalletOutlined /><div><h3>Cobro de la atención</h3><p>Cargá el importe y elegí si queda pendiente o ya se pagó.</p></div></div>
         <div className="customer-form-grid">
           <Form.Item name="monto" label="Monto total a cobrar (ARS)" rules={[{ required: true, message: 'Ingresá el total de la atención' }]}><InputNumber<string> stringMode prefix="$" min="0" max="9999999999.99" precision={2} placeholder="0.00" style={{ width: '100%' }} /></Form.Item>
           <Form.Item name="metodoPago" label="Estado y método de pago" rules={[{ required: true, message: 'Elegí cómo se paga' }]}><Select options={[{ value: 'pendiente', label: 'Pendiente de pago' }, ...paymentMethods]} /></Form.Item>
         </div>
-        <div className="customer-charge-preview"><span>Total de la atención</span><strong>{total != null && total !== '' ? formatPrice(String(total)) : 'Ingresá el monto'}</strong><small>Incluí el servicio y los productos. Al elegir un método de pago, la atención queda registrada como pagada.</small></div>
+        <div className="customer-charge-preview"><small>El total debe incluir el servicio y los productos. Si elegís un método de pago, se registra como pagada.</small></div>
+        </section>
       </Form>
     </Modal>
     <Modal className="customer-payment-modal" title="Cobrar atención" open={paymentVisit !== null} forceRender onCancel={() => { if (!paymentSaving) setPaymentVisit(null); }} onOk={() => paymentForm.submit()} okText="Registrar pago" cancelText="Volver al historial" confirmLoading={paymentSaving} cancelButtonProps={{ disabled: paymentSaving }} width={480}>

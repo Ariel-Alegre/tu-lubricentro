@@ -35,6 +35,13 @@ const { randomUUID } = require('node:crypto');
     await waitFor('Boolean(document.querySelector(".tenant-products-title button")) && !document.querySelector(".tenant-products-title button").disabled');
     await evaluate('document.querySelector(".tenant-products-title button").click()');
     await waitFor('document.querySelector(".customer-modal #nombre")?.getBoundingClientRect().width>0');
+    for (const [width, height, label] of [[1440, 900, 'desktop'], [390, 844, 'mobile'], [390, 667, 'compact']]) {
+      await call('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false }); await new Promise((resolve) => setTimeout(resolve, 400));
+      assert.equal(await evaluate('document.querySelector(".customer-modal .ant-modal-footer").getBoundingClientRect().bottom<=innerHeight'), true, `guardar/cancelar visibles en ${label}`);
+      assert.equal(await evaluate('document.querySelector(".customer-modal .ant-modal-body").scrollHeight>document.querySelector(".customer-modal .ant-modal-body").clientHeight'), true, 'formulario con desplazamiento interno');
+      const shot = await call('Page.captureScreenshot', { format: 'png' }); fs.writeFileSync(path.join(process.env.TEMP, `lubricentro-registration-${label}.png`), Buffer.from(shot.data, 'base64'));
+    }
+    await call('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1100, deviceScaleFactor: 1, mobile: false });
     await value('.customer-modal #nombre', 'Ana García'); await value('.customer-modal #telefono', '1145678900');
     await value('.customer-modal #patente', 'ab123cd'); await value('.customer-modal #marca', 'Ford'); await value('.customer-modal #modelo', 'Fiesta');
     await value('.customer-modal #servicio', 'Cambio de aceite'); await value('.customer-modal #kilometraje', '120000');
