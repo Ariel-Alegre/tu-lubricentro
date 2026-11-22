@@ -41,11 +41,12 @@ router.post('/', async (req, res) => {
 });
 
 router.patch('/:id/estado', async (req, res) => {
-  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(req.params.id) || !['Activo', 'Inactivo'].includes(req.body?.estado)) {
+  const estado = req.body && req.body.estado;
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(req.params.id) || !['Activo', 'Inactivo'].includes(estado)) {
     return res.status(400).json({ message: 'Estado o identificador inválido' });
   }
   try {
-    const record = await store.updateStatus(req.params.id, req.body.estado);
+    const record = await store.updateStatus(req.params.id, estado);
     if (!record) return res.status(404).json({ message: 'Lubricentro no encontrado' });
     res.json(record);
   } catch (error) { fail(res, error); }
