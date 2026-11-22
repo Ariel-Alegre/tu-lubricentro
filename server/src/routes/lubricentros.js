@@ -29,8 +29,8 @@ router.post('/', async (req, res) => {
   }
   data.email = data.email.toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) return res.status(400).json({ message: 'Ingresá un correo válido' });
-  if (typeof body.password !== 'string' || body.password.length < 8 || body.password.length > 128) {
-    return res.status(400).json({ message: 'La contraseña debe tener entre 8 y 128 caracteres' });
+  if (typeof body.password !== 'string' || body.password.length < 6 || body.password.length > 128) {
+    return res.status(400).json({ message: 'La contraseña debe tener entre 6 y 128 caracteres' });
   }
   try {
     const salt = randomBytes(16).toString('hex');

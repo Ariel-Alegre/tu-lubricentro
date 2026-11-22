@@ -560,9 +560,9 @@ export default function Dashboard() {
           </div>
           <Form.Item label="Contraseña" name="password" rules={[
             { required: true, message: 'Ingresá una contraseña' },
-            { min: 8, max: 128, message: 'Usá entre 8 y 128 caracteres' },
+            { min: 6, max: 128, message: 'Usá entre 6 y 128 caracteres' },
           ]}>
-            <Input.Password autoComplete="new-password" placeholder="Mínimo 8 caracteres" maxLength={128} />
+            <Input.Password autoComplete="new-password" placeholder="Mínimo 6 caracteres" maxLength={128} />
           </Form.Item>
           <Form.Item label="Confirmar contraseña" name="confirmPassword" dependencies={['password']} rules={[
             { required: true, message: 'Confirmá la contraseña' },

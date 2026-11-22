@@ -15,6 +15,9 @@ export async function POST(request: NextRequest) {
       signal: AbortSignal.timeout(8000),
     });
     if (!response.ok) {
+      if (response.status >= 500) {
+        return NextResponse.json({ message: 'El servidor de acceso no está disponible. Revisá el despliegue en Railway.' }, { status: 503 });
+      }
       return NextResponse.json({ message: response.status === 401 ? 'Correo o contraseña incorrectos' : 'No se pudo iniciar sesión' }, { status: response.status });
     }
     const { token } = await response.json();

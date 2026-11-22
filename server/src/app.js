@@ -24,6 +24,7 @@ server.use((req, res, next) => {
   next();
 });
 
+server.get('/health', (req, res) => res.json({ status: 'ok' }));
 server.use('/', routes);
 
 // Error catching endware.
