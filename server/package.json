@@ -9,6 +9,8 @@
     "test:tenant": "node --test tests/tenant-access.test.cjs",
     "test:services": "node --test tests/services.test.cjs",
     "test:products": "node --test tests/products.test.cjs",
+    "test:realtime": "node --test tests/public-realtime.test.cjs",
+    "test:customers": "node --test tests/customers.test.cjs",
     "test": "mocha -w ./tests/**/*.spec.js"
   },
   "author": "ELARITECH",
@@ -49,6 +51,7 @@
     "whatsapp-web.js": "^1.26.0"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.17",
     "chai": "^4.2.0",
     "mocha": "^8.2.1",
     "nodemon": "^2.0.20",

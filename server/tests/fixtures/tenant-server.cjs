@@ -80,14 +80,14 @@ store.findBySlug = async (slug) => {
 store.saveImage = async (id, version, kind, image) => {
   const account = await store.findAccountById(id);
   if (!account || account.estado !== 'Activo' || account.auth_version !== version) return undefined;
-  const previousKey = images.get(`${account.slug}:${kind}`)?.key;
-  images.set(`${account.slug}:${kind}`, { key: image });
+  const previousKey = images.get(`${account.id}:${kind}`)?.key;
+  images.set(`${account.id}:${kind}`, { key: image });
   account[kind === 'cover' ? 'hasCover' : 'hasProfile'] = true;
   return { record: publicAccount(account), previousKey };
 };
 store.getImage = async (slug, kind) => {
   const account = await store.findAccountBySlug(slug);
-  return account && account.estado === 'Activo' ? images.get(`${slug}:${kind}`) : null;
+  return account && account.estado === 'Activo' ? images.get(`${account.id}:${kind}`) : null;
 };
 store.updateStatus = async (id, estado) => {
   const account = await store.findAccountById(id);
@@ -95,6 +95,29 @@ store.updateStatus = async (id, estado) => {
   account.estado = estado;
   return publicAccount(account);
 };
+store.update = async (id, data, passwordHash) => {
+  const account = await store.findAccountById(id);
+  if (!account) return null;
+  Object.assign(account, data, { auth_version: account.auth_version + 1 });
+  if (passwordHash) account.password_hash = passwordHash;
+  return publicAccount(account);
+};
 const server = createServer(app);
 attachRealtime(server);
-server.listen(3101, '127.0.0.1', () => console.log('Servidor de prueba: http://127.0.0.1:3101'));
+async function start() {
+  if (process.argv.includes('--customers')) {
+    const memory = await require('./customers-db.cjs')(accounts);
+    Object.assign(store, memory.methods);
+    const updateStatus = store.updateStatus;
+    store.updateStatus = async (id, estado) => {
+      const record = await updateStatus(id, estado); const account = await store.findAccountById(id);
+      await memory.db.query('UPDATE panel_lubricentros SET estado=$1, auth_version=$2 WHERE id=$3', [estado, account.auth_version, id]);
+      return record;
+    };
+  }
+  server.listen(Number(process.env.TEST_PORT ?? 3101), '127.0.0.1', () => {
+  console.log(`Servidor de prueba: http://127.0.0.1:${server.address().port}`);
+  if (process.send) process.send({ port: server.address().port });
+});
+}
+start().catch((cause) => { console.error(cause); process.exitCode = 1; });

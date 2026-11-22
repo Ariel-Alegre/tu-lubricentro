@@ -2,6 +2,7 @@ const { Router } = require('express');
 const { requireTenant } = require('../tenant-auth');
 const store = require('../lubricentros-store');
 const bucket = require('../bucket');
+const { publishProfileChange } = require('../realtime');
 const { receiveImage, convertImage, cleanup } = require('../image-upload');
 const router = Router({ mergeParams: true });
 router.use(requireTenant);
@@ -21,6 +22,7 @@ async function save(req, res) {
     const data = { nombre: nombre.trim(), descripcion: descripcion.trim(), precio: String(precio) };
     const product = req.params.id ? await store.updateProduct(req.tenant, req.params.id, data) : await store.createProduct(req.tenant, data);
     if (!product) return res.status(404).json({ message: 'No se encontró el producto o tu acceso cambió' });
+    publishProfileChange(req.tenant.id, req.tenant.slug);
     res.status(req.params.id ? 200 : 201).json(product);
   } catch { res.status(503).json({ message: 'No se pudo guardar el producto' }); }
 }
@@ -39,6 +41,7 @@ router.post('/:id/image', async (req, res, next) => {
     key = await bucket.putImage(req.tenant.id, `products/${req.params.id}`, image);
     const saved = await store.saveProductImage(req.tenant, req.params.id, key);
     if (!saved) { await cleanup(key); return res.status(403).json({ message: 'Tu acceso cambió o el producto ya no existe' }); }
+    publishProfileChange(req.tenant.id, req.tenant.slug);
     await cleanup(saved.previousKey);
     res.set('Cache-Control', 'no-store').json(saved.record);
   } catch (error) {
@@ -51,6 +54,7 @@ router.delete('/:id', async (req, res) => {
   try {
     const product = await store.deleteProduct(req.tenant, req.params.id);
     if (!product) return res.status(404).json({ message: 'Producto no encontrado' });
+    publishProfileChange(req.tenant.id, req.tenant.slug);
     await cleanup(product._imageKey);
     res.json({ ok: true });
   } catch { res.status(503).json({ message: 'No se pudo eliminar el producto' }); }

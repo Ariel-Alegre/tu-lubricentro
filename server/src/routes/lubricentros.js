@@ -4,7 +4,7 @@ const { promisify } = require('util');
 const { requireAdmin } = require('./admin');
 const store = require('../lubricentros-store');
 const { validSlug } = require('../slug');
-const { revokeTenant } = require('../realtime');
+const { revokeTenant, publishProfileChange } = require('../realtime');
 const deriveKey = promisify(scrypt);
 const router = Router();
 router.use(requireAdmin);
@@ -51,6 +51,7 @@ async function save(req, res) {
     const record = editing ? await store.update(req.params.id, data, passwordHash) : await store.create(data, passwordHash);
     if (!record) return res.status(404).json({ message: 'Lubricentro no encontrado' });
     if (editing) revokeTenant(record.id);
+    publishProfileChange(record.id, record.slug, record.estado === 'Activo');
     res.status(editing ? 200 : 201).json(record);
   } catch (error) { fail(res, error); }
 }
@@ -67,6 +68,7 @@ router.patch('/:id/estado', async (req, res) => {
     const record = await store.updateStatus(req.params.id, estado);
     if (!record) return res.status(404).json({ message: 'Lubricentro no encontrado' });
     if (estado === 'Inactivo') revokeTenant(record.id);
+    publishProfileChange(record.id, record.slug, estado === 'Activo');
     res.json(record);
   } catch (error) { fail(res, error); }
 });

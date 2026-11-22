@@ -1,9 +1,27 @@
 const { Server } = require('socket.io');
 const { authenticate, publicAccount } = require('./tenant-auth');
+const store = require('./lubricentros-store');
+const { validSlug } = require('./slug');
 let io;
 
 function attachRealtime(httpServer) {
   io = new Server(httpServer, { cors: { origin: true, methods: ['GET', 'POST'] } });
+  const profiles = io.of('/public');
+  profiles.use(async (socket, next) => {
+    try {
+      const slug = socket.handshake.auth.slug;
+      const account = validSlug(slug) ? await store.findAccountBySlug(slug) : null;
+      if (!account || account.estado !== 'Activo') {
+        const error = new Error('Perfil no disponible'); error.data = { status: 404 }; return next(error);
+      }
+      socket.data.profileId = account.id; next();
+    } catch { const error = new Error('Servicio no disponible'); error.data = { status: 503 }; next(error); }
+  });
+  profiles.on('connection', async (socket) => {
+    await socket.join(`profile:${socket.data.profileId}`);
+    // Leer después de unirse también cubre cambios ocurridos durante la conexión.
+    socket.emit('profile:ready');
+  });
   io.use(async (socket, next) => {
     try {
       socket.data.account = await authenticate(socket.handshake.auth.ticket, 'socket');
@@ -34,4 +52,12 @@ function revokeTenant(id) {
   io.in(room).disconnectSockets(true);
 }
 
-module.exports = { attachRealtime, revokeTenant };
+function publishProfileChange(id, slug, available = true) {
+  if (!io) return;
+  // El canal público solo notifica cambios. No acepta escrituras ni difunde datos privados.
+  io.of('/public').to(`profile:${id}`).emit('profile:changed', { slug, available });
+}
+function publishCustomersChange(id) {
+  if (io) io.to(`lubricentro:${id}`).emit('customers:changed');
+}
+module.exports = { attachRealtime, revokeTenant, publishProfileChange, publishCustomersChange };

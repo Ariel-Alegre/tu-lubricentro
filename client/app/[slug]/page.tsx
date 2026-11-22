@@ -1,7 +1,7 @@
 import { Suspense } from 'react';
 import { notFound } from 'next/navigation';
 import { API_URL } from '../lib/admin-session';
-import BusinessProfile from './business-profile';
+import PublicProfile from './public-profile';
 import type { Product } from '../lib/products';
 import './lubricentro.css';
 
@@ -19,7 +19,7 @@ async function Lubricentro({ params }: { params: Promise<{ slug: string }> }) {
   if (response.status === 404) notFound();
   if (!response.ok) return <main className="lubricentro-site"><section><h1>Servicio temporalmente no disponible</h1><p>Intentá nuevamente en unos minutos.</p></section></main>;
   const comercio: Comercio = await response.json();
-  return <BusinessProfile comercio={comercio} />;
+  return <PublicProfile key={slug} initial={comercio} socketUrl={process.env.SOCKET_PUBLIC_URL || API_URL} />;
 }
 
 export default function LubricentroPage(props: { params: Promise<{ slug: string }> }) {

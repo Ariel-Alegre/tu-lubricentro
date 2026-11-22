@@ -4,6 +4,7 @@ const { validSlug } = require('../slug');
 const { signAccount, verifyPassword, requireTenant, publicAccount } = require('../tenant-auth');
 const router = Router();
 const bucket = require('../bucket');
+const { publishProfileChange } = require('../realtime');
 const { receiveImage, convertImage, cleanup } = require('../image-upload');
 
 async function login(req, res) {
@@ -25,6 +26,7 @@ router.post('/login', login);
 router.post('/:slug/login', login);
 router.use('/:slug/services', require('./services'));
 router.use('/:slug/products', require('./products'));
+router.use('/:slug/customers', require('./customers'));
 
 router.get('/:slug/session', requireTenant, (req, res) => res.set('Cache-Control', 'no-store').json(publicAccount(req.tenant)));
 router.post('/:slug/socket', requireTenant, (req, res) => res.set('Cache-Control', 'no-store').json({ ticket: signAccount(req.tenant, true) }));
@@ -38,6 +40,7 @@ router.post('/:slug/images/:kind', requireTenant, (req, res, next) => {
     key = await bucket.putImage(req.tenant.id, req.params.kind, image);
     const saved = await store.saveImage(req.tenant.id, req.tenant.auth_version, req.params.kind, key);
     if (!saved) { await cleanup(key); return res.status(403).json({ message: 'Tu acceso cambió. Volvé a iniciar sesión.' }); }
+    publishProfileChange(req.tenant.id, req.tenant.slug);
     await cleanup(saved.previousKey);
     res.set('Cache-Control', 'no-store').json(saved.record);
   } catch (error) {

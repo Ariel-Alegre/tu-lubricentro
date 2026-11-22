@@ -1,4 +1,5 @@
 const { Pool } = require('pg');
+const customers = require('./customers-store');
 let pool;
 let ready;
 
@@ -55,6 +56,7 @@ async function database() {
     );
     CREATE INDEX IF NOT EXISTS lubricentro_productos_comercio_idx ON lubricentro_productos(lubricentro_id);
     ALTER TABLE lubricentro_productos ADD COLUMN IF NOT EXISTS image_key TEXT;
+    ${customers.schema}
     `).catch((error) => { ready = null; throw error; });
   }
   await ready;
@@ -72,6 +74,7 @@ async function transaction(work) {
 }
 
 module.exports = {
+  ...customers.methods({ database, transaction }),
   async listProducts(id) {
     return (await (await database()).query(`SELECT ${PRODUCT_COLUMNS} FROM lubricentro_productos WHERE lubricentro_id=$1 ORDER BY nombre, id`, [id])).rows;
   },
