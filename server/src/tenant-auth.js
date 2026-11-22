@@ -10,6 +10,8 @@ function secret() {
 }
 
 function signAccount(account, socket = false) {
+  // La sesión no vence por tiempo. Solo la credencial de conexión al socket
+  // dura 60 segundos y el cliente solicita otra automáticamente al reconectar.
   return jwt.sign({ role: 'lubricentro', version: account.auth_version, purpose: socket ? 'socket' : 'session' }, secret(), {
     algorithm: 'HS256', issuer: 'tu-lubricentro', audience: 'panel-lubricentro', subject: account.id,
     ...(socket ? { expiresIn: '60s' } : {}),

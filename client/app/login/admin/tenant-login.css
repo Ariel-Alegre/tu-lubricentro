@@ -1,0 +1,59 @@
+.tenant-access { min-height: 100dvh; display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); color: #172b3e; background: #fff; }
+.tenant-access-story { position: relative; display: flex; flex-direction: column; justify-content: space-between; padding: clamp(32px, 4.5vw, 72px); color: #fff; background: radial-gradient(ellipse at 10% 95%, #2279bc66, transparent 65%), linear-gradient(145deg, #0c2445, #124a7d); overflow: hidden; }
+.tenant-access-story::after { content: ''; position: absolute; width: 440px; height: 440px; right: -285px; top: 26%; border: 1px solid #ffffff15; border-radius: 50%; box-shadow: 0 0 0 55px #ffffff05, 0 0 0 110px #ffffff04; pointer-events: none; }
+.tenant-access-brand { display: flex; align-items: center; gap: 14px; position: relative; z-index: 1; }
+.tenant-access-logo { display: grid; place-items: center; width: 68px; height: 68px; flex-shrink: 0; border-radius: 18px; background: #fff; box-shadow: 0 8px 24px #02142e25; }
+.tenant-access-brand strong { display: block; font-size: 22px; font-weight: 700; letter-spacing: -.03em; }
+.tenant-access-brand > div > span { display: block; color: #b7cfe5; font-size: 14px; margin-top: 3px; }
+.tenant-access-pitch { position: relative; z-index: 1; margin: 64px 0; max-width: 550px; }
+.tenant-access-pill { display: inline-flex; align-items: center; gap: 10px; padding: 8px 12px; border: 1px solid #ffffff25; border-radius: 8px; color: #beddf6; background: #ffffff08; font-size: 12px; font-weight: 600; letter-spacing: .07em; }
+.tenant-access-pitch h2 { font-size: clamp(34px, 3.5vw, 56px); font-weight: 700; letter-spacing: -.045em; line-height: 1.13; margin: 24px 0 20px; }
+.tenant-access-pitch h2 em { font-style: normal; color: #79c7ff; }
+.tenant-access-pitch > p { font-size: 17px; color: #b9cee1; max-width: 410px; line-height: 1.7; margin: 0; }
+.tenant-access-benefits { display: grid; gap: 24px; margin-top: 44px; }
+.tenant-access-benefits > div { display: flex; align-items: center; gap: 16px; }
+.tenant-access-benefits > div > span { width: 44px; height: 44px; display: grid; place-items: center; flex-shrink: 0; color: #9bd7ff; background: #ffffff09; border: 1px solid #ffffff12; border-radius: 12px; font-size: 20px; }
+.tenant-access-benefits strong { font-size: 15px; font-weight: 600; }
+.tenant-access-benefits p { margin: 4px 0 0; font-size: 14px; color: #a9c3da; line-height: 1.5; }
+.tenant-access-story-footer { color: #90aecb; font-size: 13px; }
+.tenant-access-form-side { display: flex; flex-direction: column; justify-content: center; align-items: center; padding: 64px 40px 28px; background: radial-gradient(ellipse at top right, #eaf4ff66, transparent 60%), #fff; }
+.tenant-access-form-wrap { width: 100%; max-width: 420px; margin: auto 0; padding: 24px 0 48px; }
+.tenant-access-form-icon { width: 52px; height: 52px; display: grid; place-items: center; background: #eaf3fc; border: 1px solid #dcebf8; color: #155fa0; border-radius: 14px; font-size: 23px; margin-bottom: 28px; }
+.tenant-access-eyebrow { font-size: 12px; letter-spacing: .1em; font-weight: 700; color: #155fa0; }
+.tenant-access h1 { margin: 12px 0; font-size: clamp(28px, 2.6vw, 36px); letter-spacing: -.045em; font-weight: 700; line-height: 1.2; color: #162b43; }
+.tenant-access-intro { font-size: 16px; line-height: 1.6; color: #7b899a; margin: 0 0 36px; }
+.tenant-access .ant-form-item { margin-bottom: 24px; }
+.tenant-access .ant-form-item-label > label { font-size: 14px; font-weight: 600; color: #34475e; }
+.tenant-access .ant-input-affix-wrapper { padding: 12px 16px; border: 1px solid #dce3ec; background: #fafcfe; border-radius: 12px; min-height: 52px; box-shadow: 0 2px 3px #102a4303; }
+.tenant-access .ant-input-affix-wrapper:hover { border-color: #88afd0; }
+.tenant-access .ant-input-affix-wrapper:focus-within { border-color: #155fa0; box-shadow: 0 0 0 3px #155fa012; background: #fff; }
+.tenant-access .ant-input-prefix { color: #92a2b5; margin-right: 12px; font-size: 18px; }
+.tenant-access .ant-input { font-size: 16px; background: transparent; min-width: 0; }
+.tenant-access .ant-input::placeholder { color: #9caabc; }
+.tenant-access .ant-btn-primary { display: inline-flex; align-items: center; justify-content: center; gap: 10px; width: 100%; height: 52px; margin-top: 4px; background: #155fa0; border: 1px solid #155fa0; border-radius: 12px; color: #fff; font-size: 15px; font-weight: 600; box-shadow: 0 6px 16px #155fa023; transition: background .2s, box-shadow .2s; }
+.tenant-access .ant-btn-primary:hover { background: #104d83 !important; border-color: #104d83 !important; box-shadow: 0 8px 20px #155fa032; }
+.tenant-access-security { display: flex; align-items: flex-start; justify-content: center; gap: 8px; margin-top: 20px; color: #91a0b1; font-size: 12px; line-height: 1.5; }
+.tenant-access-security > .anticon { margin-top: 2px; color: #6d91af; font-size: 15px; }
+.tenant-access-help { margin-top: 34px; padding-top: 28px; border-top: 1px solid #edf0f5; }
+.tenant-access-help strong { color: #61748a; font-size: 14px; font-weight: 600; }
+.tenant-access-help p { color: #91a0b1; font-size: 13px; line-height: 1.65; margin: 8px 0 0; }
+.tenant-access-footer { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; color: #9ca8b7; font-size: 12px; text-align: center; }
+.tenant-access-alert { margin-bottom: 24px; }
+@media (min-width: 1500px) { .tenant-access-story { padding-left: max(72px, calc((100vw - 1400px) / 2)); } }
+@media (max-width: 1000px) { .tenant-access-story { padding: 36px; } .tenant-access-form-side { padding-inline: 28px; } .tenant-access-pitch h2 { font-size: 36px; } }
+@media (max-width: 760px) {
+  .tenant-access { grid-template-columns: minmax(0, 1fr); }
+  .tenant-access-story { padding: 24px; }
+  .tenant-access-brand { gap: 12px; }
+  .tenant-access-logo { width: 50px; height: 50px; border-radius: 13px; }
+  .tenant-access-logo img { width: 40px; height: 40px; }
+  .tenant-access-brand strong { font-size: 20px; }
+  .tenant-access-brand > div > span { font-size: 12px; }
+  .tenant-access-pitch, .tenant-access-story-footer { display: none; }
+  .tenant-access-form-side { padding: 32px 24px 24px; }
+  .tenant-access-form-wrap { padding-top: 8px; padding-bottom: 36px; }
+  .tenant-access-form-icon { display: none; }
+  .tenant-access h1 { font-size: 30px; }
+  .tenant-access-intro { margin-bottom: 28px; }
+}
+@media (max-width: 360px) { .tenant-access-story, .tenant-access-form-side { padding-inline: 20px; } .tenant-access h1 { font-size: 27px; } }

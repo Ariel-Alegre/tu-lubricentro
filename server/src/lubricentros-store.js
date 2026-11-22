@@ -35,15 +35,74 @@ async function database() {
     CREATE UNIQUE INDEX IF NOT EXISTS panel_lubricentros_slug_unique ON panel_lubricentros(slug);
     ALTER TABLE panel_lubricentros ALTER COLUMN slug SET NOT NULL;
     ALTER TABLE panel_lubricentros ADD COLUMN IF NOT EXISTS auth_version INTEGER NOT NULL DEFAULT 0;
+    ALTER TABLE panel_lubricentros ADD COLUMN IF NOT EXISTS cover_image BYTEA;
+    ALTER TABLE panel_lubricentros ADD COLUMN IF NOT EXISTS profile_image BYTEA;
+    CREATE TABLE IF NOT EXISTS lubricentro_servicios (
+      id UUID PRIMARY KEY,
+      lubricentro_id UUID NOT NULL REFERENCES panel_lubricentros(id) ON DELETE CASCADE,
+      nombre VARCHAR(120) NOT NULL,
+      descripcion VARCHAR(1000) NOT NULL DEFAULT ''
+    );
+    CREATE INDEX IF NOT EXISTS lubricentro_servicios_comercio_idx ON lubricentro_servicios(lubricentro_id);
+    CREATE TABLE IF NOT EXISTS lubricentro_productos (
+      id UUID PRIMARY KEY,
+      lubricentro_id UUID NOT NULL REFERENCES panel_lubricentros(id) ON DELETE CASCADE,
+      nombre VARCHAR(120) NOT NULL,
+      descripcion VARCHAR(1000) NOT NULL DEFAULT '',
+      precio NUMERIC(12,2) NOT NULL CHECK (precio >= 0)
+    );
+    CREATE INDEX IF NOT EXISTS lubricentro_productos_comercio_idx ON lubricentro_productos(lubricentro_id);
     `).catch((error) => { ready = null; throw error; });
   }
   await ready;
   return pool;
 }
 
-const PUBLIC_COLUMNS = 'id, nombre, slug, email, telefono, direccion, ciudad, provincia, responsable, estado, fecha_alta AS "fechaAlta"';
+const PUBLIC_COLUMNS = 'id, nombre, slug, email, telefono, direccion, ciudad, provincia, responsable, estado, fecha_alta AS "fechaAlta", cover_image IS NOT NULL AS "hasCover", profile_image IS NOT NULL AS "hasProfile"';
 
 module.exports = {
+  async listProducts(id) {
+    return (await (await database()).query('SELECT id, nombre, descripcion, precio FROM lubricentro_productos WHERE lubricentro_id=$1 ORDER BY nombre, id', [id])).rows;
+  },
+  async publicProducts(slug) {
+    return (await (await database()).query(`SELECT p.id, p.nombre, p.descripcion, p.precio FROM lubricentro_productos p JOIN panel_lubricentros l ON l.id=p.lubricentro_id WHERE l.slug=$1 AND l.estado='Activo' ORDER BY p.nombre, p.id`, [slug])).rows;
+  },
+  async createProduct(account, data) {
+    const { randomUUID } = require('crypto');
+    return (await (await database()).query(`INSERT INTO lubricentro_productos (id, lubricentro_id, nombre, descripcion, precio)
+      SELECT $1, id, $2, $3, $4 FROM panel_lubricentros WHERE id=$5 AND estado='Activo' AND auth_version=$6
+      RETURNING id, nombre, descripcion, precio`, [randomUUID(), data.nombre, data.descripcion, data.precio, account.id, account.auth_version])).rows[0];
+  },
+  async updateProduct(account, id, data) {
+    return (await (await database()).query(`UPDATE lubricentro_productos p SET nombre=$1, descripcion=$2, precio=$3 FROM panel_lubricentros l
+      WHERE p.id=$4 AND p.lubricentro_id=$5 AND l.id=p.lubricentro_id AND l.estado='Activo' AND l.auth_version=$6
+      RETURNING p.id, p.nombre, p.descripcion, p.precio`, [data.nombre, data.descripcion, data.precio, id, account.id, account.auth_version])).rows[0];
+  },
+  async deleteProduct(account, id) {
+    return (await (await database()).query(`DELETE FROM lubricentro_productos p USING panel_lubricentros l
+      WHERE p.id=$1 AND p.lubricentro_id=$2 AND l.id=p.lubricentro_id AND l.estado='Activo' AND l.auth_version=$3 RETURNING p.id`, [id, account.id, account.auth_version])).rows[0];
+  },
+  async listServices(id) {
+    return (await (await database()).query('SELECT id, nombre, descripcion FROM lubricentro_servicios WHERE lubricentro_id=$1 ORDER BY nombre, id', [id])).rows;
+  },
+  async publicServices(slug) {
+    return (await (await database()).query(`SELECT s.id, s.nombre, s.descripcion FROM lubricentro_servicios s JOIN panel_lubricentros l ON l.id=s.lubricentro_id WHERE l.slug=$1 AND l.estado='Activo' ORDER BY s.nombre, s.id`, [slug])).rows;
+  },
+  async createService(account, data) {
+    const { randomUUID } = require('crypto');
+    return (await (await database()).query(`INSERT INTO lubricentro_servicios (id, lubricentro_id, nombre, descripcion)
+      SELECT $1, id, $2, $3 FROM panel_lubricentros WHERE id=$4 AND estado='Activo' AND auth_version=$5
+      RETURNING id, nombre, descripcion`, [randomUUID(), data.nombre, data.descripcion, account.id, account.auth_version])).rows[0];
+  },
+  async updateService(account, serviceId, data) {
+    return (await (await database()).query(`UPDATE lubricentro_servicios s SET nombre=$1, descripcion=$2 FROM panel_lubricentros l
+      WHERE s.id=$3 AND s.lubricentro_id=$4 AND l.id=s.lubricentro_id AND l.estado='Activo' AND l.auth_version=$5
+      RETURNING s.id, s.nombre, s.descripcion`, [data.nombre, data.descripcion, serviceId, account.id, account.auth_version])).rows[0];
+  },
+  async deleteService(account, serviceId) {
+    return (await (await database()).query(`DELETE FROM lubricentro_servicios s USING panel_lubricentros l
+      WHERE s.id=$1 AND s.lubricentro_id=$2 AND l.id=s.lubricentro_id AND l.estado='Activo' AND l.auth_version=$3 RETURNING s.id`, [serviceId, account.id, account.auth_version])).rows[0];
+  },
   initialize: database,
   async close() {
     if (pool) await pool.end();
@@ -54,7 +113,7 @@ module.exports = {
     return (await (await database()).query(`SELECT ${PUBLIC_COLUMNS} FROM panel_lubricentros ORDER BY fecha_alta DESC`)).rows;
   },
   async findBySlug(slug) {
-    return (await (await database()).query(`SELECT nombre, slug, telefono, direccion, ciudad, provincia FROM panel_lubricentros WHERE slug=$1 AND estado='Activo'`, [slug])).rows[0];
+    return (await (await database()).query(`SELECT nombre, slug, telefono, direccion, ciudad, provincia, cover_image IS NOT NULL AS "hasCover", profile_image IS NOT NULL AS "hasProfile" FROM panel_lubricentros WHERE slug=$1 AND estado='Activo'`, [slug])).rows[0];
   },
   async findAccountBySlug(slug) {
     return (await (await database()).query(`SELECT ${PUBLIC_COLUMNS}, password_hash, auth_version FROM panel_lubricentros WHERE slug=$1`, [slug])).rows[0];
@@ -64,6 +123,17 @@ module.exports = {
   },
   async findAccountById(id) {
     return (await (await database()).query(`SELECT ${PUBLIC_COLUMNS}, password_hash, auth_version FROM panel_lubricentros WHERE id=$1`, [id])).rows[0];
+  },
+  async saveImage(id, version, kind, image) {
+    const column = { cover: 'cover_image', profile: 'profile_image' }[kind];
+    if (!column) throw new Error('Tipo de imagen inválido');
+    return (await (await database()).query(`UPDATE panel_lubricentros SET ${column}=$1 WHERE id=$2 AND estado='Activo' AND auth_version=$3 RETURNING ${PUBLIC_COLUMNS}`, [image, id, version])).rows[0];
+  },
+  async getImage(slug, kind) {
+    const column = { cover: 'cover_image', profile: 'profile_image' }[kind];
+    if (!column) return null;
+    const row = (await (await database()).query(`SELECT ${column} AS image FROM panel_lubricentros WHERE slug=$1 AND estado='Activo'`, [slug])).rows[0];
+    return row && row.image;
   },
   async create(data, passwordHash) {
     const { randomUUID } = require('crypto');

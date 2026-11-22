@@ -3,6 +3,8 @@ const assert = require('node:assert/strict');
 const { scryptSync } = require('node:crypto');
 const { createServer } = require('node:http');
 const { once } = require('node:events');
+const jwt = require('jsonwebtoken');
+const sharp = require('sharp');
 const { io: connect } = require('socket.io-client');
 
 test('acceso por lubricentro y revocación por socket', async () => {
@@ -20,10 +22,22 @@ test('acceso por lubricentro y revocación por socket', async () => {
     id: `00000000-0000-4000-8000-00000000000${index + 1}`, slug, nombre: slug,
     email: `${slug}@example.test`, password_hash: hash, auth_version: 0, estado: 'Activo',
   }));
-  const originals = { findAccountById: store.findAccountById, findAccountBySlug: store.findAccountBySlug, findAccountByEmail: store.findAccountByEmail, updateStatus: store.updateStatus };
+  const originals = { findAccountById: store.findAccountById, findAccountBySlug: store.findAccountBySlug, findAccountByEmail: store.findAccountByEmail, updateStatus: store.updateStatus, saveImage: store.saveImage, getImage: store.getImage };
+  const images = new Map();
   store.findAccountById = async (id) => accounts.find((item) => item.id === id);
   store.findAccountBySlug = async (slug) => accounts.find((item) => item.slug === slug);
   store.findAccountByEmail = async (email) => accounts.find((item) => item.email === email);
+  store.saveImage = async (id, version, kind, image) => {
+    const account = await store.findAccountById(id);
+    if (!account || account.estado !== 'Activo' || account.auth_version !== version) return undefined;
+    images.set(`${account.slug}:${kind}`, image);
+    account[kind === 'cover' ? 'hasCover' : 'hasProfile'] = true;
+    return publicAccount(account);
+  };
+  store.getImage = async (slug, kind) => {
+    const account = await store.findAccountBySlug(slug);
+    return account && account.estado === 'Activo' ? images.get(`${slug}:${kind}`) : null;
+  };
   store.updateStatus = async (id, estado) => {
     const account = await store.findAccountById(id);
     if (account.estado !== estado) account.auth_version += 1;
@@ -59,6 +73,12 @@ test('acceso por lubricentro y revocación por socket', async () => {
     assert.equal(response.status, 401);
     response = await tenantLogin('el-cano');
     const { token, slug: firstSlug } = await response.json();
+    assert.equal(jwt.decode(token).exp, undefined, 'el token de sesión no tiene vencimiento');
+    const futureSession = jwt.verify(token, process.env.ADMIN_JWT_SECRET, {
+      algorithms: ['HS256'], issuer: 'tu-lubricentro', audience: 'panel-lubricentro',
+      clockTimestamp: Math.floor(Date.now() / 1000) + 10 * 365 * 24 * 60 * 60,
+    });
+    assert.equal(futureSession.sub, accounts[0].id, 'no vence aunque transcurran diez años');
     assert.equal(firstSlug, 'el-cano', 'login general identifica el slug por correo');
     const second = await tenantLogin('lorenzo');
     const { token: token2, slug: secondSlug } = await second.json();
@@ -69,6 +89,31 @@ test('acceso por lubricentro y revocación por socket', async () => {
     const session = await response.json();
     assert.equal(response.status, 200);
     assert.equal(session.password_hash, undefined);
+    response = await request('/api/lubricentros/el-cano/images/cover');
+    assert.equal(response.status, 404, 'sin foto personalizada se usa el valor por defecto del cliente');
+    const png = await sharp({ create: { width: 64, height: 64, channels: 3, background: '#155fa0' } }).png().toBuffer();
+    async function upload(slug, kind, buffer, auth = token) {
+      const form = new FormData(); form.append('image', new Blob([buffer], { type: 'image/png' }), 'test.png');
+      return fetch(`${base}/api/tenant/${slug}/images/${kind}`, { method: 'POST', headers: { Authorization: `Bearer ${auth}` }, body: form });
+    }
+    for (const kind of ['cover', 'profile']) {
+      response = await upload('el-cano', kind, png);
+      assert.equal(response.status, 200, `sube ${kind}`);
+      const record = await response.json();
+      assert.equal(record.password_hash, undefined);
+      assert.equal(record[kind === 'cover' ? 'hasCover' : 'hasProfile'], true);
+      response = await request(`/api/lubricentros/el-cano/images/${kind}`);
+      assert.equal(response.status, 200);
+      assert.equal(response.headers.get('content-type'), 'image/webp');
+      const metadata = await sharp(Buffer.from(await response.arrayBuffer())).metadata();
+      assert.equal(metadata.format, 'webp', 'valida y convierte el contenido real');
+    }
+    response = await upload('lorenzo', 'cover', png);
+    assert.equal(response.status, 403, 'no sube imágenes a otro comercio');
+    response = await upload('el-cano', 'profile', Buffer.from('not an image'));
+    assert.equal(response.status, 400, 'rechaza contenido falso aunque se anuncie como PNG');
+    response = await upload('el-cano', 'profile', Buffer.alloc(5 * 1024 * 1024 + 1));
+    assert.equal(response.status, 400, 'rechaza archivos mayores de 5 MB');
     const a = await socketFor(token, 'el-cano');
     const a2 = await socketFor(token, 'el-cano');
     const b = await socketFor(token2, 'lorenzo');
@@ -76,6 +121,7 @@ test('acceso por lubricentro y revocación por socket', async () => {
     assert.equal(response.status, 401, 'un ticket socket no sirve como sesión HTTP');
     response = await request('/api/admin/login', 'POST', { email: process.env.admin_panel, password: process.env.admin_password });
     const { token: rootToken } = await response.json();
+    assert.equal(jwt.decode(rootToken).exp, undefined, 'el token del panel raíz tampoco vence');
     response = await request('/api/tenant/el-cano/session', 'GET', undefined, rootToken);
     assert.equal(response.status, 401, 'roles separados');
     const revoked = once(a.socket, 'session:revoked', { signal: AbortSignal.timeout(5000) });
@@ -87,6 +133,10 @@ test('acceso por lubricentro y revocación por socket', async () => {
     assert.equal(b.socket.connected, true, 'no expulsa al otro comercio');
     response = await tenantLogin('el-cano');
     assert.equal(response.status, 403, 'inactivo no puede ingresar');
+    response = await upload('el-cano', 'profile', png);
+    assert.equal(response.status, 403, 'inactivo no puede subir imágenes');
+    response = await request('/api/lubricentros/el-cano/images/cover');
+    assert.equal(response.status, 404, 'no publica fotos de comercios inactivos');
     response = await request('/api/tenant/el-cano/session', 'GET', undefined, token);
     assert.equal(response.status, 403, 'sesión previa revocada');
     const rejectedSocket = connect(base, { transports: ['websocket'], auth: { ticket: a.ticket }, autoConnect: false, reconnection: false });

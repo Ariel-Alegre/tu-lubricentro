@@ -1,0 +1,27 @@
+.tenant-products-content { max-width: 1300px; margin: 0 auto; padding: 36px; }
+.tenant-products-title { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; margin-bottom: 28px; }
+.tenant-products-title > div { min-width: 0; }
+.tenant-products-title > div > span { color: #155fa0; font-size: 12px; font-weight: 700; letter-spacing: .08em; overflow-wrap: anywhere; }
+.tenant-products-title h1 { color: #172b3e; font-size: 34px; letter-spacing: -.04em; font-weight: 700; margin: 10px 0 6px; }
+.tenant-products-title p { color: #718096; font-size: 15px; line-height: 1.6; }
+.tenant-products-title > .ant-btn { flex-shrink: 0; }
+.tenant-products-list { background: #fff; border: 1px solid #e2e8ef; border-radius: 12px; overflow: hidden; }
+.tenant-products-toolbar { padding: 24px; display: flex; gap: 24px; align-items: center; justify-content: space-between; border-bottom: 1px solid #edf0f5; }
+.tenant-products-toolbar h2 { font-size: 18px; font-weight: 650; margin: 0 0 6px; color: #24354d; }
+.tenant-products-toolbar p { color: #8190a3; font-size: 13px; }
+.tenant-products-toolbar .ant-input-affix-wrapper { width: min(360px, 100%); min-height: 42px; border: 1px solid #dfe6ed; border-radius: 9px; padding: 8px 12px; }
+.tenant-products-table { padding: 0 24px 20px; }
+.tenant-product-name { min-width: 0; }
+.tenant-product-name strong { display: block; color: #34475e; font-size: 15px; font-weight: 600; overflow-wrap: anywhere; }
+.tenant-product-name span { display: block; color: #8190a3; margin-top: 4px; font-size: 13px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.tenant-product-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+.tenant-products-mobile { display: none; }
+.tenant-product-card { padding: 20px; border: 1px solid #e2e8ef; border-radius: 12px; }
+.tenant-product-card p { color: #8190a3; font-size: 14px; line-height: 1.6; margin-top: 8px; white-space: pre-wrap; overflow-wrap: anywhere; }
+.tenant-product-card .tenant-product-name > .anticon { font-size: 24px; color: #155fa0; margin-bottom: 12px; }
+.tenant-product-price { display: block; margin: 18px 0; font-size: 24px; font-weight: 700; color: #155fa0; overflow-wrap: anywhere; }
+.tenant-product-price small { font-size: 12px; color: #8190a3; font-weight: 500; }
+.tenant-product-modal .ant-btn-primary { background: #155fa0; color: #fff; border-color: #155fa0; }
+.tenant-product-modal input, .tenant-product-modal textarea { font-size: 16px; }
+@media (max-width: 1100px) { .tenant-products-table { display: none; } .tenant-products-mobile { display: grid; gap: 16px; padding: 20px; } }
+@media (max-width: 760px) { .tenant-products-content { padding: 24px 16px; } .tenant-products-title, .tenant-products-toolbar { align-items: stretch; flex-direction: column; } .tenant-products-toolbar .ant-input-affix-wrapper { width: 100%; } .tenant-products-title h1 { font-size: 30px; } .tenant-products-toolbar { padding: 20px; gap: 16px; } }

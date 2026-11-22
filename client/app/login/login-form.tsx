@@ -1,7 +1,8 @@
 'use client';
 
 import { Alert, Button, Card, ConfigProvider, Form, Input } from 'antd';
-import { LockOutlined, ShopOutlined, UserOutlined } from '@ant-design/icons';
+import { LockOutlined, UserOutlined } from '@ant-design/icons';
+import Image from 'next/image';
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
 import './login.css';
@@ -31,7 +32,7 @@ export default function LoginForm() {
     <ConfigProvider theme={{ token: { colorPrimary: '#155fa0', controlHeight: 44, borderRadius: 10 } }}>
       <main className="admin-login">
         <Card className="admin-login-card">
-          <div className="admin-login-brand"><ShopOutlined /></div>
+          <div style={{ textAlign: 'center', marginBottom: 20 }}><Image src="/tu-lubricentro-logo.png" alt="Tu Lubricentro" width={90} height={90} style={{ margin: '0 auto' }} priority /></div>
           <h1>Tu Lubricentro</h1>
           <p>Ingresá al panel raíz</p>
           {error && <Alert type="error" showIcon title={error} className="admin-login-error" />}

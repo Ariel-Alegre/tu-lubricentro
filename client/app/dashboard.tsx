@@ -6,6 +6,7 @@ import {
   BellOutlined,
   CheckCircleFilled,
   EnvironmentOutlined,
+  EditOutlined,
   LogoutOutlined,
   MenuOutlined,
   PlusOutlined,
@@ -38,6 +39,8 @@ import {
 import type { TableProps } from "antd";
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
+import Link from 'next/link';
+import Image from 'next/image';
 import "./dashboard.css";
 
 const styles = {
@@ -90,6 +93,7 @@ const { Header, Content, Sider } = Layout;
 
 type LubricentroForm = {
   nombre: string;
+  slug: string;
   email: string;
   telefono: string;
   direccion: string;
@@ -117,6 +121,7 @@ export default function Dashboard() {
   const router = useRouter();
   const [form] = Form.useForm<LubricentroForm>();
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const [editing, setEditing] = useState<Lubricentro | null>(null);
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [search, setSearch] = useState("");
@@ -143,7 +148,7 @@ export default function Dashboard() {
     if (!term) return lubricentros;
 
     return lubricentros.filter((item) =>
-      [item.nombre, item.ciudad]
+      [item.nombre, item.ciudad, item.slug]
         .join(" ")
         .toLocaleLowerCase("es")
         .includes(term),
@@ -166,16 +171,30 @@ export default function Dashboard() {
     } finally { setUpdatingId(null); }
   }
 
+  function openCreate() {
+    setEditing(null);
+    form.resetFields();
+    setDrawerOpen(true);
+  }
+
+  function openEdit(record: Lubricentro) {
+    setEditing(record);
+    form.resetFields();
+    form.setFieldsValue({ ...record, password: '', confirmPassword: '' });
+    setDrawerOpen(true);
+  }
+
   const columns: TableProps<Lubricentro>["columns"] = [
     {
       title: "Lubricentro",
       dataIndex: "nombre",
       key: "nombre",
-      render: (nombre: string) => (
+      render: (nombre: string, record) => (
         <Space size={12}>
           <Avatar className={styles.tableAvatar} icon={<ShopOutlined />} />
           <div>
             <strong className={styles.tableTitle}>{nombre}</strong>
+            <Link href={`/${record.slug}`}>/{record.slug}</Link>
           </div>
         </Space>
       ),
@@ -202,20 +221,25 @@ export default function Dashboard() {
         />
       ),
     },
+    {
+      title: 'Acciones', key: 'acciones', width: 110,
+      render: (_, record) => <Button icon={<EditOutlined />} onClick={() => openEdit(record)} aria-label={`Editar ${record.nombre}`}>Editar</Button>,
+    },
   ];
 
   const saveLubricentro = async (values: LubricentroForm) => {
     setSaving(true);
     try {
-      const response = await fetch('/api/admin/lubricentros', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(values),
+      const response = await fetch(editing ? `/api/admin/lubricentros/${editing.id}` : '/api/admin/lubricentros', {
+        method: editing ? 'PUT' : 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(values),
       });
       const created = await response.json();
-      if (!response.ok) throw new Error(created.message || 'No se pudo registrar el lubricentro');
-      setLubricentros((items) => [created, ...items]);
+      if (!response.ok) throw new Error(created.message || 'No se pudo guardar el lubricentro');
+      setLubricentros((items) => editing ? items.map((item) => item.id === editing.id ? created : item) : [created, ...items]);
       setDrawerOpen(false);
       form.resetFields();
-      message.success('Lubricentro registrado con su contraseña');
+      setEditing(null);
+      message.success(editing ? 'Lubricentro actualizado' : 'Lubricentro registrado con su contraseña');
     } catch (error) {
       message.error(error instanceof Error ? error.message : 'No se pudo registrar el lubricentro');
     } finally { setSaving(false); }
@@ -224,6 +248,7 @@ export default function Dashboard() {
   const closeDrawer = () => {
     if (saving) return;
     setDrawerOpen(false);
+    setEditing(null);
     form.resetFields();
   };
 
@@ -231,7 +256,7 @@ export default function Dashboard() {
     <>
       <div className={styles.brand}>
         <div className={styles.brandMark}>
-          <ShopOutlined />
+          <Image src="/tu-lubricentro-logo.png" alt="Tu Lubricentro" width={38} height={38} />
         </div>
         <div>
           <span className={styles.brandName}>Tu Lubricentro</span>
@@ -321,7 +346,7 @@ export default function Dashboard() {
                 <h1>Lubricentros</h1>
                 <p>Registrá y administrá los comercios que usan la plataforma.</p>
               </div>
-              <Button className={styles.createButton} type="primary" icon={<PlusOutlined />} onClick={() => setDrawerOpen(true)}>
+              <Button className={styles.createButton} type="primary" icon={<PlusOutlined />} onClick={openCreate}>
                 Nuevo lubricentro
               </Button>
             </section>
@@ -391,7 +416,7 @@ export default function Dashboard() {
                         }
                       >
                         {!search && (
-                          <Button type="primary" onClick={() => setDrawerOpen(true)}>
+                          <Button type="primary" onClick={openCreate}>
                             Registrar el primero
                           </Button>
                         )}
@@ -409,6 +434,7 @@ export default function Dashboard() {
                         <Avatar className={styles.tableAvatar} icon={<ShopOutlined />} />
                         <div>
                           <strong>{lubricentro.nombre}</strong>
+                          <Link href={`/${lubricentro.slug}`}>/{lubricentro.slug}</Link>
                         </div>
                         <Switch
                           checked={lubricentro.estado === 'Activo'}
@@ -426,6 +452,9 @@ export default function Dashboard() {
                           <dd>{lubricentro.ciudad}, {lubricentro.provincia}</dd>
                         </div>
                       </dl>
+                      <Button block icon={<EditOutlined />} onClick={() => openEdit(lubricentro)} style={{ marginTop: 16 }}>
+                        Editar lubricentro
+                      </Button>
                     </article>
                   ))
                 ) : (
@@ -434,7 +463,7 @@ export default function Dashboard() {
                     description={loading ? 'Cargando lubricentros...' : loadError ? 'Listado no disponible' : search ? "No encontramos resultados." : "Todavía no registraste ningún lubricentro."}
                   >
                     {!search && (
-                      <Button type="primary" onClick={() => setDrawerOpen(true)}>
+                      <Button type="primary" onClick={openCreate}>
                         Registrar el primero
                       </Button>
                     )}
@@ -451,20 +480,20 @@ export default function Dashboard() {
           <div className={styles.drawerTitle}>
             <span className={styles.drawerIcon}><BankOutlined /></span>
             <div>
-              <strong>Registrar lubricentro</strong>
-              <span>Completá los datos del nuevo comercio</span>
+              <strong>{editing ? 'Editar lubricentro' : 'Registrar lubricentro'}</strong>
+              <span>{editing ? 'Actualizá los datos del comercio' : 'Completá los datos del nuevo comercio'}</span>
             </div>
           </div>
         }
         size={560}
         open={drawerOpen}
         onClose={closeDrawer}
-        destroyOnHidden
+        forceRender
         footer={
           <div className={styles.drawerFooter}>
             <Button onClick={closeDrawer}>Cancelar</Button>
             <Button type="primary" loading={saving} onClick={() => form.submit()}>
-              Registrar lubricentro
+              {editing ? 'Guardar cambios' : 'Registrar lubricentro'}
             </Button>
           </div>
         }
@@ -486,6 +515,14 @@ export default function Dashboard() {
             rules={[{ required: true, message: "Ingresá el nombre comercial" }]}
           >
             <Input placeholder="Ej. Lubricentro Central" />
+          </Form.Item>
+          <Form.Item label="Dirección del lubricentro (slug)" name="slug" extra="Ejemplo: el-cano para acceder desde /el-cano" normalize={(value: string) => value.toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/\s+/g, '-')} rules={[
+            { required: true, message: 'Ingresá la dirección del lubricentro' },
+            { min: 2, max: 63, message: 'Usá entre 2 y 63 caracteres' },
+            { pattern: /^[a-z0-9]+(?:-[a-z0-9]+)*$/, message: 'Usá letras minúsculas, números y guiones entre palabras' },
+            { validator: (_, value) => ['login', 'api', 'admin', 'panel', 'health', 'logout', 'favicon', 'robots', 'sitemap'].includes(value) ? Promise.reject(new Error('Esa dirección está reservada')) : Promise.resolve() },
+          ]}>
+            <Input addonBefore="/" placeholder="el-cano" maxLength={63} autoComplete="off" />
           </Form.Item>
 
           <div className={styles.formSection}>
@@ -556,16 +593,16 @@ export default function Dashboard() {
           </Form.Item>
           <div className={styles.formSection}>
             <h3>Acceso del lubricentro</h3>
-            <p>Asigná una contraseña para el correo electrónico registrado.</p>
+            <p>{editing ? 'Dejá la contraseña vacía para conservar la actual.' : 'Asigná una contraseña para el correo electrónico registrado.'}</p>
           </div>
           <Form.Item label="Contraseña" name="password" rules={[
-            { required: true, message: 'Ingresá una contraseña' },
+            { required: !editing, message: 'Ingresá una contraseña' },
             { min: 6, max: 128, message: 'Usá entre 6 y 128 caracteres' },
           ]}>
             <Input.Password autoComplete="new-password" placeholder="Mínimo 6 caracteres" maxLength={128} />
           </Form.Item>
           <Form.Item label="Confirmar contraseña" name="confirmPassword" dependencies={['password']} rules={[
-            { required: true, message: 'Confirmá la contraseña' },
+            ({ getFieldValue }) => ({ required: !editing || Boolean(getFieldValue('password')), message: 'Confirmá la contraseña' }),
             ({ getFieldValue }) => ({ validator(_, value) {
               return !value || value === getFieldValue('password') ? Promise.resolve() : Promise.reject(new Error('Las contraseñas no coinciden'));
             } }),

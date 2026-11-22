@@ -17,6 +17,64 @@ const accounts = ['el-cano', 'lorenzo'].map((slug, index) => ({
 store.findAccountById = async (id) => accounts.find((item) => item.id === id);
 store.findAccountBySlug = async (slug) => accounts.find((item) => item.slug === slug);
 store.findAccountByEmail = async (email) => accounts.find((item) => item.email === email);
+const images = new Map();
+const services = new Map();
+const products = new Map();
+store.listProducts = async (id) => [...products.values()].filter((item) => item.owner === id).map(({ owner, ...item }) => item);
+store.publicProducts = async (slug) => {
+  const account = await store.findAccountBySlug(slug);
+  return account && account.estado === 'Activo' ? store.listProducts(account.id) : [];
+};
+store.createProduct = async (account, data) => {
+  const record = { ...data, id: require('node:crypto').randomUUID() };
+  products.set(record.id, { ...record, owner: account.id }); return record;
+};
+store.updateProduct = async (account, id, data) => {
+  const record = products.get(id); if (!record || record.owner !== account.id) return undefined;
+  products.set(id, { ...data, id, owner: account.id }); return { ...data, id };
+};
+store.deleteProduct = async (account, id) => {
+  const record = products.get(id); if (!record || record.owner !== account.id) return undefined;
+  products.delete(id); return { id };
+};
+store.listServices = async (id) => [...services.values()].filter((item) => item.owner === id).map(({ owner, ...item }) => item);
+store.publicServices = async (slug) => {
+  const account = await store.findAccountBySlug(slug);
+  return account && account.estado === 'Activo' ? store.listServices(account.id) : [];
+};
+store.createService = async (account, data) => {
+  const record = { ...data, id: require('node:crypto').randomUUID() };
+  services.set(record.id, { ...record, owner: account.id });
+  return record;
+};
+store.updateService = async (account, id, data) => {
+  const record = services.get(id);
+  if (!record || record.owner !== account.id) return undefined;
+  services.set(id, { ...data, id, owner: account.id });
+  return { ...data, id };
+};
+store.deleteService = async (account, id) => {
+  const record = services.get(id);
+  if (!record || record.owner !== account.id) return undefined;
+  services.delete(id); return { id };
+};
+store.findBySlug = async (slug) => {
+  const account = await store.findAccountBySlug(slug);
+  if (!account || account.estado !== 'Activo') return undefined;
+  const { nombre, telefono, direccion, ciudad, provincia, hasCover, hasProfile } = account;
+  return { nombre, slug, telefono, direccion, ciudad, provincia, hasCover, hasProfile };
+};
+store.saveImage = async (id, version, kind, image) => {
+  const account = await store.findAccountById(id);
+  if (!account || account.estado !== 'Activo' || account.auth_version !== version) return undefined;
+  images.set(`${account.slug}:${kind}`, image);
+  account[kind === 'cover' ? 'hasCover' : 'hasProfile'] = true;
+  return publicAccount(account);
+};
+store.getImage = async (slug, kind) => {
+  const account = await store.findAccountBySlug(slug);
+  return account && account.estado === 'Activo' ? images.get(`${slug}:${kind}`) : null;
+};
 store.updateStatus = async (id, estado) => {
   const account = await store.findAccountById(id);
   if (account.estado !== estado) account.auth_version += 1;

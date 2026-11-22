@@ -8,7 +8,7 @@ async function proxy(request: NextRequest, context: { params: Promise<{ segments
   const token = request.cookies.get(ADMIN_COOKIE)?.value;
   if (!token) return NextResponse.json({ message: 'Iniciá sesión' }, { status: 401 });
   const { segments = [] } = await context.params;
-  if (segments.length && !(request.method === 'PATCH' && segments.length === 2 && segments[1] === 'estado')) {
+  if (segments.length && !(request.method === 'PATCH' && segments.length === 2 && segments[1] === 'estado') && !(request.method === 'PUT' && segments.length === 1)) {
     return NextResponse.json({ message: 'Ruta inválida' }, { status: 404 });
   }
   try {
@@ -31,3 +31,4 @@ async function proxy(request: NextRequest, context: { params: Promise<{ segments
 export const GET = proxy;
 export const POST = proxy;
 export const PATCH = proxy;
+export const PUT = proxy;
