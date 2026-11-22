@@ -1,6 +1,6 @@
 'use client';
 import { Alert, Button, ConfigProvider, Drawer, Menu, Spin } from 'antd';
-import { AppstoreOutlined, ShoppingOutlined, TeamOutlined } from '@ant-design/icons';
+import { AppstoreOutlined, ShoppingOutlined, TeamOutlined, ToolOutlined } from '@ant-design/icons';
 import Image from 'next/image';
 import { useEffect, useState, type ReactNode } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
@@ -22,13 +22,14 @@ export default function TenantPanel({ tenant: initialTenant, children }: { tenan
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState('');
   const slug = initialTenant.slug;
-  const view = pathname === `/${slug}/admin/productos` ? 'products' : pathname === `/${slug}/admin/clientes` ? 'customers' : 'profile';
+  const view = pathname === `/${slug}/admin/productos` ? 'products' : pathname === `/${slug}/admin/clientes` ? 'customers' : pathname === `/${slug}/admin/servicios` ? 'services' : 'profile';
 
   useEffect(() => {
     if (!connected) return;
     router.prefetch(`/${slug}/admin`);
     router.prefetch(`/${slug}/admin/productos`);
     router.prefetch(`/${slug}/admin/clientes`);
+    router.prefetch(`/${slug}/admin/servicios`);
   }, [connected, slug, router]);
 
   useEffect(() => {
@@ -123,14 +124,16 @@ export default function TenantPanel({ tenant: initialTenant, children }: { tenan
 
   const navigation = <>
     <div className="tenant-brand"><Image src="/tu-lubricentro-logo.png" alt="" width={44} height={44} /><strong>Tu Lubricentro</strong></div>
-    <Menu theme="light" className="tenant-navigation-menu" mode="inline" selectedKeys={[view === 'products' ? 'productos' : view === 'customers' ? 'clientes' : 'inicio']} onClick={({ key }) => {
+    <Menu theme="light" className="tenant-navigation-menu" mode="inline" selectedKeys={[view === 'products' ? 'productos' : view === 'customers' ? 'clientes' : view === 'services' ? 'servicios' : 'inicio']} onClick={({ key }) => {
       setMobileMenuOpen(false);
       if (key === 'productos') router.push(`/${slug}/admin/productos`);
       else if (key === 'clientes') router.push(`/${slug}/admin/clientes`);
+      else if (key === 'servicios') router.push(`/${slug}/admin/servicios`);
       else { setActiveTab('inicio'); if (view !== 'profile') router.push(`/${slug}/admin`); }
     }} items={[
       { key: 'inicio', label: 'Mi lubricentro', icon: <AppstoreOutlined /> },
       { key: 'productos', label: 'Productos', icon: <ShoppingOutlined /> },
+      { key: 'servicios', label: 'Servicios', icon: <ToolOutlined /> },
       { key: 'clientes', label: 'Clientes', icon: <TeamOutlined /> },
     ]} />
     <div className="tenant-sidebar-footer"><strong>{tenant.nombre}</strong><span>Panel administrativo</span></div>
