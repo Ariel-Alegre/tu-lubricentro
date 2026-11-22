@@ -56,6 +56,7 @@ async function database() {
     );
     CREATE INDEX IF NOT EXISTS lubricentro_productos_comercio_idx ON lubricentro_productos(lubricentro_id);
     ALTER TABLE lubricentro_productos ADD COLUMN IF NOT EXISTS image_key TEXT;
+    ALTER TABLE lubricentro_productos ADD COLUMN IF NOT EXISTS stock INTEGER NOT NULL DEFAULT 0 CHECK (stock >= 0);
     ${customers.schema}
     `).catch((error) => { ready = null; throw error; });
   }
@@ -64,7 +65,7 @@ async function database() {
 }
 
 const PUBLIC_COLUMNS = 'id, nombre, slug, email, telefono, direccion, ciudad, provincia, responsable, estado, fecha_alta AS "fechaAlta", (cover_image_key IS NOT NULL OR cover_image IS NOT NULL) AS "hasCover", (profile_image_key IS NOT NULL OR profile_image IS NOT NULL) AS "hasProfile"';
-const PRODUCT_COLUMNS = 'id, nombre, descripcion, precio, image_key IS NOT NULL AS "hasImage"';
+const PRODUCT_COLUMNS = 'id, nombre, descripcion, precio, stock, image_key IS NOT NULL AS "hasImage"';
 
 async function transaction(work) {
   const client = await (await database()).connect();
@@ -83,14 +84,14 @@ module.exports = {
   },
   async createProduct(account, data) {
     const { randomUUID } = require('crypto');
-    return (await (await database()).query(`INSERT INTO lubricentro_productos (id, lubricentro_id, nombre, descripcion, precio)
-      SELECT $1, id, $2, $3, $4 FROM panel_lubricentros WHERE id=$5 AND estado='Activo' AND auth_version=$6
-      RETURNING ${PRODUCT_COLUMNS}`, [randomUUID(), data.nombre, data.descripcion, data.precio, account.id, account.auth_version])).rows[0];
+    return (await (await database()).query(`INSERT INTO lubricentro_productos (id, lubricentro_id, nombre, descripcion, precio, stock)
+      SELECT $1, id, $2, $3, $4, $7 FROM panel_lubricentros WHERE id=$5 AND estado='Activo' AND auth_version=$6
+      RETURNING ${PRODUCT_COLUMNS}`, [randomUUID(), data.nombre, data.descripcion, data.precio, account.id, account.auth_version, data.stock ?? 0])).rows[0];
   },
   async updateProduct(account, id, data) {
-    return (await (await database()).query(`UPDATE lubricentro_productos p SET nombre=$1, descripcion=$2, precio=$3 FROM panel_lubricentros l
+    return (await (await database()).query(`UPDATE lubricentro_productos p SET nombre=$1, descripcion=$2, precio=$3, stock=COALESCE($7, p.stock) FROM panel_lubricentros l
       WHERE p.id=$4 AND p.lubricentro_id=$5 AND l.id=p.lubricentro_id AND l.estado='Activo' AND l.auth_version=$6
-      RETURNING p.id, p.nombre, p.descripcion, p.precio, p.image_key IS NOT NULL AS "hasImage"`, [data.nombre, data.descripcion, data.precio, id, account.id, account.auth_version])).rows[0];
+      RETURNING p.id, p.nombre, p.descripcion, p.precio, p.stock, p.image_key IS NOT NULL AS "hasImage"`, [data.nombre, data.descripcion, data.precio, id, account.id, account.auth_version, data.stock ?? null])).rows[0];
   },
   async deleteProduct(account, id) {
     return (await (await database()).query(`DELETE FROM lubricentro_productos p USING panel_lubricentros l

@@ -26,6 +26,8 @@ const path = require('node:path');
   async function setValue(selector, value, textarea = false) {
     await evaluate(`(()=>{const el=document.querySelector(${JSON.stringify(selector)});Object.getOwnPropertyDescriptor(${textarea ? 'HTMLTextAreaElement' : 'HTMLInputElement'}.prototype,'value').set.call(el,${JSON.stringify(value)});el.dispatchEvent(new Event('input',{bubbles:true}));el.dispatchEvent(new Event('change',{bubbles:true}));el.blur();})()`);
   }
+  const photoPath = path.join(require('node:os').tmpdir(), `producto-qa-${require('node:crypto').randomUUID()}.png`);
+  await require('sharp')({ create: { width: 80, height: 80, channels: 3, background: '#155fa0' } }).png().toFile(photoPath);
   try {
     await call('Emulation.setDeviceMetricsOverride', { width: 1440, height: 1100, deviceScaleFactor: 1, mobile: false });
     await evaluate(`(async()=>{const response=await fetch('/api/tenant/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:'el-cano@example.test',password:'123456'})});if(!response.ok)throw new Error('Login de prueba fallido');})()`);
@@ -37,18 +39,23 @@ const path = require('node:path');
     await setValue('.tenant-product-modal #nombre', 'Aceite 10W-40');
     const { root } = await call('DOM.getDocument');
     const { nodeId } = await call('DOM.querySelector', { nodeId: root.nodeId, selector: '.tenant-product-modal input[type=file]' });
-    await call('DOM.setFileInputFiles', { nodeId, files: [path.resolve(__dirname, '../../client/public/tu-lubricentro-logo.png')] });
+    await call('DOM.setFileInputFiles', { nodeId, files: [photoPath] });
     await waitFor('Boolean(document.querySelector(".tenant-product-modal img")?.src.startsWith("data:"))');
     await setValue('.tenant-product-modal textarea', 'Envase de 4 litros', true);
     await setValue('.tenant-product-modal .ant-input-number-input', '18500.50');
+    await setValue('.tenant-product-modal #stock', '15');
     await evaluate('document.querySelector(".tenant-product-modal .ant-modal-footer .ant-btn-primary").click()');
     await waitFor('document.querySelector(".tenant-products-table .tenant-product-name strong")?.textContent==="Aceite 10W-40"');
     await waitFor('Boolean(document.querySelector(".tenant-products-table .product-photo img")?.naturalWidth)');
+    await waitFor('document.querySelector(".tenant-products-table")?.innerText.includes("15 unidades")');
     await evaluate('document.querySelector(".tenant-products-table .tenant-product-actions button").click()');
     await waitFor('document.querySelector(".tenant-product-modal #nombre")?.getBoundingClientRect().width>0');
     await setValue('.tenant-product-modal #nombre', 'Aceite sintético');
+    assert.equal(await evaluate('document.querySelector(".tenant-product-modal #stock").value'), '15');
+    await setValue('.tenant-product-modal #stock', '0');
     await evaluate('document.querySelector(".tenant-product-modal .ant-modal-footer .ant-btn-primary").click()');
     await waitFor('document.querySelector(".tenant-products-table .tenant-product-name strong")?.textContent==="Aceite sintético"');
+    await waitFor('document.querySelector(".tenant-products-table")?.innerText.includes("Sin stock")');
     await setValue('.tenant-products-toolbar input', 'inexistente');
     await waitFor('document.body.innerText.includes("No encontramos productos con esa búsqueda")');
     await setValue('.tenant-products-toolbar input', '');
@@ -56,6 +63,7 @@ const path = require('node:path');
       await call('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: false });
       await new Promise((resolve) => setTimeout(resolve, 400));
       assert.equal(await evaluate('document.documentElement.scrollWidth<=innerWidth'), true);
+      if (name === 'mobile') assert.equal(await evaluate('document.querySelector(".tenant-product-stock").innerText.includes("Sin stock")'), true);
       const shot = await call('Page.captureScreenshot', { format: 'png' });
       fs.writeFileSync(path.join(process.env.TEMP, `lubricentro-products-${name}.png`), Buffer.from(shot.data, 'base64'));
     }
@@ -69,5 +77,5 @@ const path = require('node:path');
     await evaluate('document.querySelector(".ant-popconfirm-buttons .ant-btn-primary").click()');
     await waitFor('document.body.innerText.includes("Todavía no agregaste productos")');
     console.log('PASS: menú redirige a productos, alta, edición, búsqueda, catálogo público y eliminación. Escritorio/móvil sin desbordes. Almacenamiento simulado.');
-  } finally { ws.close(); }
+  } finally { ws.close(); fs.unlinkSync(photoPath); }
 })().catch((error) => { console.error(error.message); process.exitCode = 1; });

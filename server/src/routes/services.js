@@ -20,7 +20,7 @@ async function save(req, res) {
     const data = { nombre: nombre.trim(), descripcion: descripcion.trim() };
     const record = req.params.id ? await store.updateService(req.tenant, req.params.id, data) : await store.createService(req.tenant, data);
     if (!record) return res.status(404).json({ message: 'No se encontró el servicio o tu acceso cambió' });
-    publishProfileChange(req.tenant.id, req.tenant.slug);
+    publishProfileChange(req.tenant.id, req.tenant.slug, true, 'services');
     res.status(req.params.id ? 200 : 201).json(record);
   } catch { res.status(503).json({ message: 'No se pudo guardar el servicio' }); }
 }
@@ -31,7 +31,7 @@ router.delete('/:id', async (req, res) => {
   try {
     const record = await store.deleteService(req.tenant, req.params.id);
     if (!record) return res.status(404).json({ message: 'Servicio no encontrado' });
-    publishProfileChange(req.tenant.id, req.tenant.slug);
+    publishProfileChange(req.tenant.id, req.tenant.slug, true, 'services');
     res.json({ ok: true });
   } catch { res.status(503).json({ message: 'No se pudo eliminar el servicio' }); }
 });

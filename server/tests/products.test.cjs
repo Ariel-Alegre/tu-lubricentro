@@ -37,7 +37,7 @@ test('productos aislados por comercio, precios válidos y catálogo público', a
   const req = (slug, method = 'GET', data, id = '', token = tokens[0]) => fetch(`${base}/api/tenant/${slug}/products${id ? '/' + id : ''}`, { method, headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, body: data ? JSON.stringify(data) : undefined });
   try {
     let response = await req('el-cano', 'POST', { nombre: 'Aceite 10W-40', descripcion: 'Envase de 4 litros', precio: '18500.50' });
-    assert.equal(response.status, 201); const product = await response.json(); assert.equal(product.precio, '18500.50');
+    assert.equal(response.status, 201); const product = await response.json(); assert.equal(product.precio, '18500.50'); assert.equal(product.stock, 0);
     const png = await require('sharp')({ create: { width: 40, height: 40, channels: 3, background: '#155fa0' } }).png().toBuffer();
     const upload = (slug = 'el-cano', token = tokens[0], content = png) => { const body = new FormData(); body.append('image', new Blob([content], { type: 'image/png' }), 'foto.png'); return fetch(`${base}/api/tenant/${slug}/products/${product.id}/image`, { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body }); };
     response = await upload(); assert.equal(response.status, 200); const withImage = await response.json(); assert.equal(withImage.hasImage, true); assert.equal(withImage.key, undefined);
@@ -59,8 +59,12 @@ test('productos aislados por comercio, precios válidos y catálogo público', a
     for (const precio of [-1, null, '', '2.123', 'NaN', '10000000000', true]) {
       response = await req('el-cano', 'POST', { nombre: 'Inválido', precio }); assert.equal(response.status, 400);
     }
+    for (const stock of [-1, 1.5, null, '', '4', true, 2147483648]) {
+      response = await req('el-cano', 'POST', { nombre: 'Stock inválido', precio: '10', stock }); assert.equal(response.status, 400);
+      response = await req('el-cano', 'PUT', { nombre: 'Stock inválido', precio: '10', stock }, product.id); assert.equal(response.status, 400);
+    }
     response = await req('el-cano', 'POST', { nombre: ' ', precio: '2' }); assert.equal(response.status, 400);
-    response = await req('el-cano', 'PUT', { nombre: 'Aceite sintético', descripcion: 'Actualizado', precio: '19000' }, product.id); assert.equal(response.status, 200);
+    response = await req('el-cano', 'PUT', { nombre: 'Aceite sintético', descripcion: 'Actualizado', precio: '19000', stock: 12 }, product.id); assert.equal(response.status, 200); assert.equal((await response.json()).stock, 12);
     response = await fetch(`${base}/api/lubricentros/el-cano`); const profile = await response.json(); assert.equal(profile.products[0].nombre, 'Aceite sintético');
     response = await fetch(`${base}/api/lubricentros/lorenzo`); assert.deepEqual((await response.json()).products, []);
     response = await req('el-cano', 'DELETE', undefined, product.id); assert.equal(response.status, 200);

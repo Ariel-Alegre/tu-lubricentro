@@ -44,4 +44,15 @@ function requireAdmin(req, res, next) {
 }
 
 router.get('/session', requireAdmin, (req, res) => res.json(req.admin));
-module.exports = { router, requireAdmin };
+router.post('/socket', requireAdmin, (req, res) => {
+  const config = credentials();
+  const ticket = jwt.sign({ role: 'root', purpose: 'socket' }, config.key, { algorithm: 'HS256', subject: config.email, issuer: 'tu-lubricentro', audience: 'socket-raiz', expiresIn: '60s' });
+  res.set('Cache-Control', 'no-store').json({ ticket });
+});
+function verifyAdminSocket(ticket) {
+  const config = credentials();
+  const payload = jwt.verify(ticket, config.key, { algorithms: ['HS256'], issuer: 'tu-lubricentro', audience: 'socket-raiz', subject: config.email });
+  if (payload.role !== 'root' || payload.purpose !== 'socket') throw new Error('Acceso inválido');
+  return { email: config.email };
+}
+module.exports = { router, requireAdmin, verifyAdminSocket };

@@ -2,10 +2,21 @@ const { Server } = require('socket.io');
 const { authenticate, publicAccount } = require('./tenant-auth');
 const store = require('./lubricentros-store');
 const { validSlug } = require('./slug');
+const { verifyAdminSocket } = require('./routes/admin');
 let io;
 
 function attachRealtime(httpServer) {
   io = new Server(httpServer, { cors: { origin: true, methods: ['GET', 'POST'] } });
+  const root = io.of('/root');
+  root.use((socket, next) => {
+    try { verifyAdminSocket(socket.handshake.auth.ticket); next(); }
+    catch { const error = new Error('Sesión inválida'); error.data = { status: 401 }; next(error); }
+  });
+  root.on('connection', async (socket) => {
+    await socket.join('root-admins');
+    try { verifyAdminSocket(socket.handshake.auth.ticket); socket.emit('root:ready'); }
+    catch { socket.emit('root:revoked'); socket.disconnect(true); }
+  });
   const histories = io.of('/history');
   histories.use(async (socket, next) => {
     try {
@@ -69,14 +80,22 @@ function revokeTenant(id) {
   io.in(room).disconnectSockets(true);
 }
 
-function publishProfileChange(id, slug, available = true) {
+function publishProfileChange(id, slug, available = true, section = 'profile') {
   if (!io) return;
   // El canal público solo notifica cambios. No acepta escrituras ni difunde datos privados.
   io.of('/public').to(`profile:${id}`).emit('profile:changed', { slug, available });
-  io.of('/history').to(`business:${id}`).emit('history:changed');
+  if (section === 'profile') {
+    io.to(`lubricentro:${id}`).emit('profile:changed');
+    io.of('/history').to(`business:${id}`).emit('history:changed');
+  } else {
+    io.to(`lubricentro:${id}`).emit('catalog:changed');
+  }
 }
 function publishCustomersChange(id, vehicleId) {
   if (io) io.to(`lubricentro:${id}`).emit('customers:changed');
   if (io && vehicleId) io.of('/history').to(`vehicle:${vehicleId}`).emit('history:changed');
 }
-module.exports = { attachRealtime, revokeTenant, publishProfileChange, publishCustomersChange };
+function publishRootChange() {
+  if (io) io.of('/root').to('root-admins').emit('lubricentros:changed');
+}
+module.exports = { attachRealtime, revokeTenant, publishProfileChange, publishCustomersChange, publishRootChange };

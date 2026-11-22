@@ -8,8 +8,8 @@
     "dev": "nodemon -L index.js",
     "test:tenant": "node --test tests/tenant-access.test.cjs",
     "test:services": "node --test tests/services.test.cjs",
-    "test:products": "node --test tests/products.test.cjs",
-    "test:realtime": "node --test tests/public-realtime.test.cjs",
+    "test:products": "node --test tests/products.test.cjs tests/product-stock.test.cjs",
+    "test:realtime": "node --test tests/public-realtime.test.cjs tests/panel-realtime.test.cjs",
     "test:customers": "node --test tests/customers.test.cjs",
     "test": "mocha -w ./tests/**/*.spec.js"
   },

@@ -25,6 +25,7 @@
 .tenant-product-card .tenant-product-name > .anticon { font-size: 24px; color: #155fa0; margin-bottom: 12px; }
 .tenant-product-price { display: block; margin: 18px 0; font-size: 24px; font-weight: 700; color: #155fa0; overflow-wrap: anywhere; }
 .tenant-product-price small { font-size: 12px; color: #8190a3; font-weight: 500; }
+.tenant-product-stock { margin-bottom: 18px; color: #34475e; font-size: 14px; }
 .tenant-product-modal .ant-btn-primary { background: #155fa0; color: #fff; border-color: #155fa0; }
 .tenant-product-modal input, .tenant-product-modal textarea { font-size: 16px; }
 @media (max-width: 1100px) { .tenant-products-table { display: none; } .tenant-products-mobile { display: grid; gap: 16px; padding: 20px; } }

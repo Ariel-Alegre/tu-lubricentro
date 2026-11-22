@@ -2,26 +2,34 @@
 import { Alert, Button, ConfigProvider, Drawer, Menu, Spin } from 'antd';
 import { AppstoreOutlined, ShoppingOutlined, TeamOutlined } from '@ant-design/icons';
 import Image from 'next/image';
-import { useEffect, useState } from 'react';
-import { useRouter } from 'next/navigation';
+import { useEffect, useState, type ReactNode } from 'react';
+import { usePathname, useRouter } from 'next/navigation';
 import { io, Socket } from 'socket.io-client';
 import type { Tenant } from '../../lib/tenant-session';
 import './tenant-panel.css';
-import BusinessProfile from '../business-profile';
 import '../lubricentro.css';
-import ProductsPanel from './products-panel';
-import CustomersPanel from './customers-panel';
+import { TenantPanelContext } from './tenant-panel-context';
 
-export default function TenantPanel({ tenant: initialTenant, view = 'profile' }: { tenant: Tenant; view?: 'profile' | 'products' | 'customers' }) {
+export default function TenantPanel({ tenant: initialTenant, children }: { tenant: Tenant; children: ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [tenant, setTenant] = useState(initialTenant);
   const [imageVersion, setImageVersion] = useState(0);
   const [customersVersion, setCustomersVersion] = useState(0);
+  const [catalogVersion, setCatalogVersion] = useState(0);
   const [activeTab, setActiveTab] = useState('inicio');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState('');
   const slug = initialTenant.slug;
+  const view = pathname === `/${slug}/admin/productos` ? 'products' : pathname === `/${slug}/admin/clientes` ? 'customers' : 'profile';
+
+  useEffect(() => {
+    if (!connected) return;
+    router.prefetch(`/${slug}/admin`);
+    router.prefetch(`/${slug}/admin/productos`);
+    router.prefetch(`/${slug}/admin/clientes`);
+  }, [connected, slug, router]);
 
   useEffect(() => {
     let cancelled = false;
@@ -63,10 +71,13 @@ export default function TenantPanel({ tenant: initialTenant, view = 'profile' }:
           if (!cancelled && !revoked && account.id === initialTenant.id && account.slug === slug) {
             setTenant(account); setConnected(true); setError('');
             setCustomersVersion((value) => value + 1);
+            setCatalogVersion((value) => value + 1); setImageVersion((value) => value + 1);
           }
         });
         socket.on('session:revoked', revoke);
         socket.on('customers:changed', () => { if (!cancelled && !revoked) setCustomersVersion((value) => value + 1); });
+        socket.on('catalog:changed', () => { if (!cancelled && !revoked) setCatalogVersion((value) => value + 1); });
+        socket.on('profile:changed', async () => { await validate(); if (!cancelled && !revoked) setImageVersion((value) => value + 1); });
         socket.on('disconnect', () => { if (!cancelled) setConnected(false); });
         socket.on('connect_error', (cause) => {
           if (cancelled || revoked) return;
@@ -116,8 +127,7 @@ export default function TenantPanel({ tenant: initialTenant, view = 'profile' }:
       setMobileMenuOpen(false);
       if (key === 'productos') router.push(`/${slug}/admin/productos`);
       else if (key === 'clientes') router.push(`/${slug}/admin/clientes`);
-      else if (view !== 'profile') router.push(`/${slug}/admin`);
-      else setActiveTab('inicio');
+      else { setActiveTab('inicio'); if (view !== 'profile') router.push(`/${slug}/admin`); }
     }} items={[
       { key: 'inicio', label: 'Mi lubricentro', icon: <AppstoreOutlined /> },
       { key: 'productos', label: 'Productos', icon: <ShoppingOutlined /> },
@@ -130,11 +140,11 @@ export default function TenantPanel({ tenant: initialTenant, view = 'profile' }:
     <div className="tenant-shell">
       <aside className="tenant-sidebar tenant-admin-sidebar" aria-label="Menú administrativo">{navigation}</aside>
       <Drawer placement="left" size={270} title="Menú administrativo" open={mobileMenuOpen} onClose={() => setMobileMenuOpen(false)} styles={{ body: { padding: 0, display: 'flex', flexDirection: 'column' } }}>{navigation}</Drawer>
-      <div className="tenant-main">
-        {view === 'customers' ? <CustomersPanel slug={slug} nombre={tenant.nombre} version={customersVersion} onOpenMenu={() => setMobileMenuOpen(true)} onLogout={logout} /> : view === 'products' ? <ProductsPanel slug={slug} nombre={tenant.nombre} onOpenMenu={() => setMobileMenuOpen(true)} onLogout={logout} /> : <BusinessProfile comercio={tenant} editor={{ imageVersion, activeTab, onTabChange: setActiveTab, onOpenMenu: () => setMobileMenuOpen(true), onLogout: logout, onImageUpdated: (account) => {
+      <TenantPanelContext.Provider value={{ tenant, imageVersion, customersVersion, catalogVersion, activeTab, onTabChange: setActiveTab, onOpenMenu: () => setMobileMenuOpen(true), onLogout: logout, onImageUpdated: (account) => {
           setTenant(account); setImageVersion((current) => current + 1);
-        } }} />}
-      </div>
+        } }}>
+        <div className="tenant-main">{children}</div>
+      </TenantPanelContext.Provider>
     </div>
   </ConfigProvider>;
 }

@@ -13,7 +13,7 @@ import CustomerHistory from './customer-history';
 import CustomerHistoryQR from './customer-history-qr';
 
 type Values = { patente?: string; nombre?: string; telefono?: string; marca?: string; modelo?: string; fecha: string; servicio: string; productos?: string[]; kilometraje?: number | null; observaciones?: string; monto: string; metodoPago: PaymentMethod | 'pendiente' };
-export default function CustomersPanel({ slug, nombre, version, onOpenMenu, onLogout }: { slug: string; nombre: string; version: number; onOpenMenu: () => void; onLogout: () => void }) {
+export default function CustomersPanel({ slug, nombre, version, catalogVersion = 0, onOpenMenu, onLogout }: { slug: string; nombre: string; version: number; catalogVersion?: number; onOpenMenu: () => void; onLogout: () => void }) {
   const router = useRouter();
   const [form] = Form.useForm<Values>();
   const [paymentForm] = Form.useForm<{ monto: string; metodoPago: PaymentMethod }>();
@@ -78,7 +78,7 @@ export default function CustomersPanel({ slug, nombre, version, onOpenMenu, onLo
     }
     void catalog('services'); void catalog('products');
     return () => controller.abort();
-  }, [slug, version]);
+  }, [slug, catalogVersion]);
 
   function open(mode: 'register' | 'visit') {
     form.resetFields(); setFormError(''); setSuccess(''); requestId.current = crypto.randomUUID();

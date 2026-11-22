@@ -13,10 +13,16 @@ const accounts = ['el-cano', 'lorenzo'].map((slug, index) => ({
   id: `00000000-0000-4000-8000-00000000000${index + 1}`, slug, nombre: index ? 'Lubricentro Lorenzo' : 'Lubricentro El Cano',
   email: `${slug}@example.test`, telefono: '11 4567-8900', direccion: 'Av. San Martín 1234', ciudad: 'Buenos Aires', provincia: 'Buenos Aires', responsable: 'Responsable de prueba',
   password_hash: `scrypt:${salt}:${scryptSync('123456', salt, 64).toString('hex')}`, auth_version: 0, estado: 'Activo',
+  fechaAlta: '2026-11-22T00:00:00.000Z',
 }));
 store.findAccountById = async (id) => accounts.find((item) => item.id === id);
 store.findAccountBySlug = async (slug) => accounts.find((item) => item.slug === slug);
 store.findAccountByEmail = async (email) => accounts.find((item) => item.email === email);
+store.list = async () => accounts.map(publicAccount);
+store.create = async (data, passwordHash) => {
+  const account = { ...data, id: require('node:crypto').randomUUID(), password_hash: passwordHash, auth_version: 0, estado: 'Activo', fechaAlta: new Date().toISOString() };
+  accounts.push(account); return publicAccount(account);
+};
 const images = new Map();
 const services = new Map();
 const products = new Map();
@@ -39,7 +45,7 @@ store.publicProducts = async (slug) => {
   return account && account.estado === 'Activo' ? store.listProducts(account.id) : [];
 };
 store.createProduct = async (account, data) => {
-  const record = { ...data, id: require('node:crypto').randomUUID() };
+  const record = { stock: 0, ...data, id: require('node:crypto').randomUUID() };
   products.set(record.id, { ...record, owner: account.id }); return record;
 };
 store.updateProduct = async (account, id, data) => {

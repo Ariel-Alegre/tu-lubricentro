@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 type Service = { id: string; nombre: string; descripcion: string };
 type Values = Pick<Service, 'nombre' | 'descripcion'>;
 
-export default function ServiceSettings({ slug }: { slug: string }) {
+export default function ServiceSettings({ slug, version = 0 }: { slug: string; version?: number }) {
   const router = useRouter();
   const [form] = Form.useForm<Values>();
   const [services, setServices] = useState<Service[]>([]);
@@ -33,7 +33,7 @@ export default function ServiceSettings({ slug }: { slug: string }) {
       .catch((cause) => { if (!controller.signal.aborted) setError(cause.message); })
       .finally(() => { if (!controller.signal.aborted) setLoading(false); });
     return () => controller.abort();
-  }, [slug, reload, router]);
+  }, [slug, reload, router, version]);
 
   function edit(service: Service | null) {
     setEditing(service); setFormError(''); form.resetFields();
@@ -48,7 +48,7 @@ export default function ServiceSettings({ slug }: { slug: string }) {
       const data = await response.json();
       if (response.status === 401 || response.status === 403) { router.replace('/login/admin?reason=revoked'); router.refresh(); }
       if (!response.ok) throw new Error(data.message || 'No se pudo guardar el servicio');
-      setServices((items) => editing ? items.map((item) => item.id === editing.id ? data : item) : [...items, data]);
+      setServices((items) => items.some((item) => item.id === data.id) ? items.map((item) => item.id === data.id ? data : item) : [...items, data]);
       setOpen(false); form.resetFields(); router.refresh();
     } catch (cause) { setFormError(cause instanceof Error ? cause.message : 'No se pudo guardar'); }
     finally { setSaving(false); }

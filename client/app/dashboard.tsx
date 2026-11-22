@@ -41,6 +41,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from 'next/link';
 import Image from 'next/image';
+import { useRootRealtime } from './lib/use-root-realtime';
 import "./dashboard.css";
 
 const styles = {
@@ -119,6 +120,7 @@ const menuItems = [
 
 export default function Dashboard() {
   const router = useRouter();
+  const { version, error: connectionError } = useRootRealtime();
   const [form] = Form.useForm<LubricentroForm>();
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editing, setEditing] = useState<Lubricentro | null>(null);
@@ -131,17 +133,17 @@ export default function Dashboard() {
   const [updatingId, setUpdatingId] = useState<string | null>(null);
 
   useEffect(() => {
-    let active = true;
-    fetch('/api/admin/lubricentros', { cache: 'no-store' })
+    const controller = new AbortController();
+    fetch('/api/admin/lubricentros', { cache: 'no-store', signal: controller.signal })
       .then(async (response) => {
         const data = await response.json();
         if (!response.ok) throw new Error(data.message || 'No se pudo cargar el listado');
-        if (active) setLubricentros(data);
+        if (!controller.signal.aborted) { setLubricentros(data); setLoadError(''); }
       })
-      .catch((error: Error) => { if (active) setLoadError(error.message); })
-      .finally(() => { if (active) setLoading(false); });
-    return () => { active = false; };
-  }, []);
+      .catch((error: Error) => { if (!controller.signal.aborted) setLoadError(error.message); })
+      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
+    return () => controller.abort();
+  }, [version]);
 
   const filteredLubricentros = useMemo(() => {
     const term = search.trim().toLocaleLowerCase("es");
@@ -235,7 +237,7 @@ export default function Dashboard() {
       });
       const created = await response.json();
       if (!response.ok) throw new Error(created.message || 'No se pudo guardar el lubricentro');
-      setLubricentros((items) => editing ? items.map((item) => item.id === editing.id ? created : item) : [created, ...items]);
+      setLubricentros((items) => items.some((item) => item.id === created.id) ? items.map((item) => item.id === created.id ? created : item) : [created, ...items]);
       setDrawerOpen(false);
       form.resetFields();
       setEditing(null);
@@ -340,6 +342,7 @@ export default function Dashboard() {
 
           <Content className={styles.content}>
             {loadError && <Alert type="error" showIcon title={loadError} style={{ marginBottom: 20 }} />}
+            {connectionError && <Alert type="warning" showIcon title={connectionError} style={{ marginBottom: 20 }} />}
             <section className={styles.titleRow}>
               <div>
                 <span className={styles.eyebrow}>ORGANIZACIONES</span>
