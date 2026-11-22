@@ -65,4 +65,11 @@ module.exports = {
   async updateStatus(id, estado) {
     return (await (await database()).query(`UPDATE panel_lubricentros SET estado=$1 WHERE id=$2 RETURNING ${PUBLIC_COLUMNS}`, [estado, id])).rows[0];
   },
+  async update(id, data, passwordHash) {
+    const values = [data.nombre, data.slug, data.email, data.telefono, data.direccion, data.ciudad, data.provincia, data.responsable, passwordHash, id];
+    return (await (await database()).query(`UPDATE panel_lubricentros SET
+      nombre=$1, slug=$2, email=$3, telefono=$4, direccion=$5, ciudad=$6, provincia=$7, responsable=$8,
+      password_hash=COALESCE($9, password_hash)
+      WHERE id=$10 RETURNING ${PUBLIC_COLUMNS}`, values)).rows[0];
+  },
 };

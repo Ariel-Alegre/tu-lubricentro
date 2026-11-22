@@ -19,7 +19,11 @@ router.get('/', async (req, res) => {
   try { res.json(await store.list()); } catch (error) { fail(res, error); }
 });
 
-router.post('/', async (req, res) => {
+async function save(req, res) {
+  const editing = Boolean(req.params.id);
+  if (editing && !/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(req.params.id)) {
+    return res.status(400).json({ message: 'Identificador inválido' });
+  }
   const body = req.body || {};
   const data = {};
   for (const field of ['nombre', 'email', 'telefono', 'direccion', 'ciudad', 'provincia', 'responsable']) {
@@ -32,16 +36,25 @@ router.post('/', async (req, res) => {
   if (!validSlug(body.slug)) return res.status(400).json({ message: 'Ingresá una dirección única de 2 a 63 caracteres: letras minúsculas, números y guiones. Evitá nombres reservados como login o api.' });
   data.slug = body.slug;
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(data.email)) return res.status(400).json({ message: 'Ingresá un correo válido' });
-  if (typeof body.password !== 'string' || body.password.length < 6 || body.password.length > 128) {
+  const changePassword = !editing || (body.password !== undefined && body.password !== '');
+  if (changePassword && (typeof body.password !== 'string' || body.password.length < 6 || body.password.length > 128)) {
     return res.status(400).json({ message: 'La contraseña debe tener entre 6 y 128 caracteres' });
   }
   try {
-    const salt = randomBytes(16).toString('hex');
-    const hash = await deriveKey(body.password, salt, 64);
-    const record = await store.create(data, `scrypt:${salt}:${hash.toString('hex')}`);
-    res.status(201).json(record);
+    let passwordHash = null;
+    if (changePassword) {
+      const salt = randomBytes(16).toString('hex');
+      const hash = await deriveKey(body.password, salt, 64);
+      passwordHash = `scrypt:${salt}:${hash.toString('hex')}`;
+    }
+    const record = editing ? await store.update(req.params.id, data, passwordHash) : await store.create(data, passwordHash);
+    if (!record) return res.status(404).json({ message: 'Lubricentro no encontrado' });
+    res.status(editing ? 200 : 201).json(record);
   } catch (error) { fail(res, error); }
-});
+}
+
+router.post('/', save);
+router.put('/:id', save);
 
 router.patch('/:id/estado', async (req, res) => {
   const estado = req.body && req.body.estado;
