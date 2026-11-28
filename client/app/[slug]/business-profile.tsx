@@ -3,7 +3,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
 import { Button, ConfigProvider, Empty, Tabs } from 'antd';
-import { CalendarOutlined, ClockCircleOutlined, EnvironmentOutlined, InfoCircleOutlined, LoginOutlined, LogoutOutlined, EyeOutlined, MenuOutlined, MessageOutlined, PhoneOutlined, ShopOutlined, ShoppingOutlined, WhatsAppOutlined, ToolOutlined, ShareAltOutlined, CheckOutlined } from '@ant-design/icons';
+import { CalendarOutlined, ClockCircleOutlined, EnvironmentOutlined, InfoCircleOutlined, HistoryOutlined, LogoutOutlined, EyeOutlined, MenuOutlined, MessageOutlined, PhoneOutlined, ShopOutlined, ShoppingOutlined, WhatsAppOutlined, ToolOutlined, ShareAltOutlined, CheckOutlined } from '@ant-design/icons';
 import ImageUpload from './admin/image-upload';
 import ServiceSettings from './admin/service-settings';
 import type { Tenant } from '../lib/tenant-session';
@@ -58,7 +58,7 @@ export default function BusinessProfile({ comercio, editor, publicImageVersion =
     <main className={`business-page${editor ? ' business-page-editor' : ''}`}>
       <header className="business-topbar"><div className="business-topbar-inner">
         <div className="business-platform-brand">{editor && <Button className="business-mobile-menu-button" type="text" icon={<MenuOutlined />} aria-label="Abrir menú administrativo" onClick={editor.onOpenMenu} />}<Image src="/tu-lubricentro-logo.png" alt="" width={36} height={36} /><strong>Tu Lubricentro</strong></div>
-        {editor ? <div className="business-editor-top-actions"><Link href={`/${comercio.slug}`} target="_blank" className="business-admin-link"><EyeOutlined /><span>Ver perfil público</span></Link><Button icon={<LogoutOutlined />} onClick={editor.onLogout}>Salir</Button></div> : <Link href="/login/admin" className="business-admin-link"><LoginOutlined /><span>Acceso a mi comercio</span></Link>}
+        {editor ? <div className="business-editor-top-actions"><Link href={`/${comercio.slug}`} target="_blank" className="business-admin-link"><EyeOutlined /><span>Ver perfil público</span></Link><Button icon={<LogoutOutlined />} onClick={editor.onLogout}>Salir</Button></div> : <Link href={`/${comercio.slug}/login`} className="business-client-history-link"><HistoryOutlined /><span>Consultar mi historial</span></Link>}
       </div></header>
 
       <div className="business-profile-head">

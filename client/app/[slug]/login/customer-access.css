@@ -1,0 +1,11 @@
+.customer-access-page { min-height: 100dvh; background: #f0f3f7; padding: 32px 20px 64px; color: #24354d; display: flex; flex-direction: column; align-items: center; }
+.customer-access-back { width: min(100%, 460px); display: flex; align-items: center; gap: 8px; margin-bottom: 32px; color: #155fa0; font-size: 14px; font-weight: 600; }
+.customer-access-card { width: min(100%, 460px); padding: 36px; border: 1px solid #e2e8ef; border-radius: 20px; background: #fff; box-shadow: 0 12px 40px #17334f0a; }
+.customer-access-icon { display: grid; place-items: center; width: 64px; height: 64px; border-radius: 18px; background: #eaf3fc; color: #155fa0; font-size: 28px; margin-bottom: 24px; }
+.customer-access-business { color: #155fa0; font-size: 14px; font-weight: 650; margin-bottom: 10px; overflow-wrap: anywhere; }
+.customer-access-card h1 { margin: 0 0 14px; font-size: 28px; line-height: 1.2; letter-spacing: -.04em; font-weight: 700; }
+.customer-access-intro { margin: 0 0 28px; color: #718096; font-size: 15px; line-height: 1.7; }
+.customer-access-hint { margin: 24px 0 0; color: #718096; font-size: 13px; line-height: 1.7; text-align: center; }
+.customer-access-plate input { letter-spacing: .06em; }
+.customer-access-card .ant-btn-primary { background: #155fa0; }
+@media (max-width: 480px) { .customer-access-page { padding: 24px 16px 40px; } .customer-access-card { padding: 28px 22px; } .customer-access-card h1 { font-size: 26px; } }
