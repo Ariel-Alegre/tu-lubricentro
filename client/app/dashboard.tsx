@@ -97,15 +97,14 @@ type LubricentroForm = {
   slug: string;
   email: string;
   telefono: string;
-  direccion: string;
-  ciudad: string;
-  provincia: string;
   responsable: string;
   password: string;
   confirmPassword: string;
 };
 
 type Lubricentro = Omit<LubricentroForm, 'password' | 'confirmPassword'> & {
+  ciudad: string;
+  mapsUrl?: string;
   id: string;
   estado: "Activo" | "Inactivo";
   fechaAlta: string;
@@ -205,7 +204,7 @@ export default function Dashboard() {
       title: "Ubicación",
       key: "ubicacion",
       responsive: ["lg"],
-      render: (_, record) => `${record.ciudad}, ${record.provincia}`,
+      render: (_, record) => record.mapsUrl ? <a href={record.mapsUrl} target="_blank" rel="noopener noreferrer">Ver en Google Maps</a> : 'Pendiente de configurar',
     },
     {
       title: "Estado",
@@ -376,8 +375,8 @@ export default function Dashboard() {
               <Col xs={24} sm={12} xl={8}>
                 <Card className={styles.statCard} variant="borderless">
                   <Statistic
-                    title="Localidades alcanzadas"
-                    value={new Set(lubricentros.map((item) => item.ciudad)).size}
+                    title="Ubicaciones configuradas"
+                    value={lubricentros.filter((item) => item.mapsUrl).length}
                     prefix={<EnvironmentOutlined className={styles.statIconOrange} />}
                   />
                 </Card>
@@ -395,7 +394,7 @@ export default function Dashboard() {
                   value={search}
                   onChange={(event) => setSearch(event.target.value)}
                   prefix={<SearchOutlined />}
-                  placeholder="Buscar por nombre o ciudad"
+                  placeholder="Buscar lubricentro"
                   className={styles.search}
                 />
               </div>
@@ -452,7 +451,7 @@ export default function Dashboard() {
                       <dl className={styles.mobileDetails}>
                         <div>
                           <dt>Ubicación</dt>
-                          <dd>{lubricentro.ciudad}, {lubricentro.provincia}</dd>
+                          <dd>{lubricentro.mapsUrl ? <a href={lubricentro.mapsUrl} target="_blank" rel="noopener noreferrer">Ver en Google Maps</a> : 'Pendiente de configurar'}</dd>
                         </div>
                       </dl>
                       <Button block icon={<EditOutlined />} onClick={() => openEdit(lubricentro)} style={{ marginTop: 16 }}>
@@ -555,33 +554,7 @@ export default function Dashboard() {
               </Form.Item>
             </Col>
           </Row>
-          <Form.Item
-            label="Dirección"
-            name="direccion"
-            rules={[{ required: true, message: "Ingresá la dirección" }]}
-          >
-            <Input placeholder="Av. San Martín 1234" />
-          </Form.Item>
-          <Row gutter={12}>
-            <Col xs={24} sm={12}>
-              <Form.Item
-                label="Ciudad"
-                name="ciudad"
-                rules={[{ required: true, message: "Ingresá la ciudad" }]}
-              >
-                <Input placeholder="Ciudad" />
-              </Form.Item>
-            </Col>
-            <Col xs={24} sm={12}>
-              <Form.Item
-                label="Provincia"
-                name="provincia"
-                rules={[{ required: true, message: "Ingresá la provincia" }]}
-              >
-                <Input placeholder="Provincia" />
-              </Form.Item>
-            </Col>
-          </Row>
+          <p style={{ color: '#718096', marginBottom: 24 }}>El lubricentro configura su ubicación desde su panel pegando el enlace de Google Maps.</p>
 
           <div className={styles.formSection}>
             <h3>Responsable</h3>

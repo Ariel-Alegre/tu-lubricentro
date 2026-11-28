@@ -41,6 +41,7 @@ async function database() {
     ALTER TABLE panel_lubricentros ADD COLUMN IF NOT EXISTS cover_image_key TEXT;
     ALTER TABLE panel_lubricentros ADD COLUMN IF NOT EXISTS profile_image_key TEXT;
     ALTER TABLE panel_lubricentros ADD COLUMN IF NOT EXISTS google_reviews_url TEXT NOT NULL DEFAULT '';
+    ALTER TABLE panel_lubricentros ADD COLUMN IF NOT EXISTS google_maps_url TEXT NOT NULL DEFAULT '';
     CREATE TABLE IF NOT EXISTS lubricentro_servicios (
       id UUID PRIMARY KEY,
       lubricentro_id UUID NOT NULL REFERENCES panel_lubricentros(id) ON DELETE CASCADE,
@@ -65,7 +66,7 @@ async function database() {
   return pool;
 }
 
-const PUBLIC_COLUMNS = 'id, nombre, slug, email, telefono, direccion, ciudad, provincia, responsable, estado, google_reviews_url AS "reviewsUrl", fecha_alta AS "fechaAlta", (cover_image_key IS NOT NULL OR cover_image IS NOT NULL) AS "hasCover", (profile_image_key IS NOT NULL OR profile_image IS NOT NULL) AS "hasProfile"';
+const PUBLIC_COLUMNS = 'id, nombre, slug, email, telefono, direccion, ciudad, provincia, responsable, estado, google_reviews_url AS "reviewsUrl", google_maps_url AS "mapsUrl", fecha_alta AS "fechaAlta", (cover_image_key IS NOT NULL OR cover_image IS NOT NULL) AS "hasCover", (profile_image_key IS NOT NULL OR profile_image IS NOT NULL) AS "hasProfile"';
 const PRODUCT_COLUMNS = 'id, nombre, descripcion, precio, stock, image_key IS NOT NULL AS "hasImage"';
 
 async function transaction(work) {
@@ -76,6 +77,10 @@ async function transaction(work) {
 }
 
 module.exports = {
+  async saveMapsUrl(account, url) {
+    return (await (await database()).query(`UPDATE panel_lubricentros SET google_maps_url=$1
+      WHERE id=$2 AND estado='Activo' AND auth_version=$3 RETURNING ${PUBLIC_COLUMNS}`, [url, account.id, account.auth_version])).rows[0];
+  },
   async saveReviewsUrl(account, url) {
     return (await (await database()).query(`UPDATE panel_lubricentros SET google_reviews_url=$1
       WHERE id=$2 AND estado='Activo' AND auth_version=$3 RETURNING ${PUBLIC_COLUMNS}`, [url, account.id, account.auth_version])).rows[0];
@@ -154,7 +159,7 @@ module.exports = {
     return (await (await database()).query(`SELECT ${PUBLIC_COLUMNS} FROM panel_lubricentros ORDER BY fecha_alta DESC`)).rows;
   },
   async findBySlug(slug) {
-    return (await (await database()).query(`SELECT nombre, slug, telefono, direccion, ciudad, provincia, google_reviews_url AS "reviewsUrl", (cover_image_key IS NOT NULL OR cover_image IS NOT NULL) AS "hasCover", (profile_image_key IS NOT NULL OR profile_image IS NOT NULL) AS "hasProfile" FROM panel_lubricentros WHERE slug=$1 AND estado='Activo'`, [slug])).rows[0];
+    return (await (await database()).query(`SELECT nombre, slug, telefono, direccion, ciudad, provincia, google_reviews_url AS "reviewsUrl", google_maps_url AS "mapsUrl", (cover_image_key IS NOT NULL OR cover_image IS NOT NULL) AS "hasCover", (profile_image_key IS NOT NULL OR profile_image IS NOT NULL) AS "hasProfile" FROM panel_lubricentros WHERE slug=$1 AND estado='Activo'`, [slug])).rows[0];
   },
   async findAccountBySlug(slug) {
     return (await (await database()).query(`SELECT ${PUBLIC_COLUMNS}, password_hash, auth_version FROM panel_lubricentros WHERE slug=$1`, [slug])).rows[0];
@@ -183,7 +188,7 @@ module.exports = {
   },
   async create(data, passwordHash) {
     const { randomUUID } = require('crypto');
-    const values = [randomUUID(), data.nombre, data.email, data.telefono, data.direccion, data.ciudad, data.provincia, data.responsable, passwordHash, data.slug];
+    const values = [randomUUID(), data.nombre, data.email, data.telefono, data.direccion ?? '', data.ciudad ?? '', data.provincia ?? '', data.responsable, passwordHash, data.slug];
     return (await (await database()).query(`INSERT INTO panel_lubricentros
       (id, nombre, email, telefono, direccion, ciudad, provincia, responsable, password_hash, slug)
       VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) RETURNING ${PUBLIC_COLUMNS}`, values)).rows[0];
@@ -196,7 +201,7 @@ module.exports = {
   async update(id, data, passwordHash) {
     const values = [data.nombre, data.slug, data.email, data.telefono, data.direccion, data.ciudad, data.provincia, data.responsable, passwordHash, id];
     return (await (await database()).query(`UPDATE panel_lubricentros SET
-      nombre=$1, slug=$2, email=$3, telefono=$4, direccion=$5, ciudad=$6, provincia=$7, responsable=$8,
+      nombre=$1, slug=$2, email=$3, telefono=$4, direccion=COALESCE($5,direccion), ciudad=COALESCE($6,ciudad), provincia=COALESCE($7,provincia), responsable=$8,
       password_hash=COALESCE($9, password_hash), auth_version=auth_version+1
       WHERE id=$10 RETURNING ${PUBLIC_COLUMNS}`, values)).rows[0];
   },

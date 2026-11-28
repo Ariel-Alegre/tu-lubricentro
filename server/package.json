@@ -12,6 +12,7 @@
     "test:realtime": "node --test tests/public-realtime.test.cjs tests/panel-realtime.test.cjs",
     "test:customers": "node --test tests/customers.test.cjs",
     "test:reviews": "node --test tests/reviews.test.cjs",
+    "test:location": "node --test tests/location.test.cjs",
     "test": "mocha -w ./tests/**/*.spec.js"
   },
   "author": "ELARITECH",

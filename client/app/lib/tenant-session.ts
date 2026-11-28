@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
 import { API_URL } from './admin-session';
 
-export type Tenant = { id: string; nombre: string; slug: string; email: string; telefono: string; direccion: string; ciudad: string; provincia: string; responsable: string; estado: string; reviewsUrl?: string; hasCover?: boolean; hasProfile?: boolean };
+export type Tenant = { id: string; nombre: string; slug: string; email: string; telefono: string; direccion: string; ciudad: string; provincia: string; responsable: string; estado: string; mapsUrl?: string; reviewsUrl?: string; hasCover?: boolean; hasProfile?: boolean };
 export function tenantCookie(slug: string) { return `lubricentro_session_${slug}`; }
 
 export async function getTenant(slug: string): Promise<Tenant | null> {

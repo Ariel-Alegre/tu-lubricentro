@@ -18,6 +18,12 @@ const accounts = ['el-cano', 'lorenzo'].map((slug, index) => ({
 store.findAccountById = async (id) => accounts.find((item) => item.id === id);
 store.findAccountBySlug = async (slug) => accounts.find((item) => item.slug === slug);
 store.findAccountByEmail = async (email) => accounts.find((item) => item.email === email);
+store.saveMapsUrl = async (current, mapsUrl) => {
+  const account = accounts.find((item) => item.id === current.id && item.estado === 'Activo' && item.auth_version === current.auth_version);
+  if (!account) return undefined;
+  account.mapsUrl = mapsUrl;
+  return publicAccount(account);
+};
 store.saveReviewsUrl = async (current, reviewsUrl) => {
   const account = accounts.find((item) => item.id === current.id && item.estado === 'Activo' && item.auth_version === current.auth_version);
   if (!account) return undefined;
@@ -32,7 +38,7 @@ store.changePassword = async (current, passwordHash) => {
 };
 store.list = async () => accounts.map(publicAccount);
 store.create = async (data, passwordHash) => {
-  const account = { ...data, id: require('node:crypto').randomUUID(), password_hash: passwordHash, auth_version: 0, estado: 'Activo', fechaAlta: new Date().toISOString() };
+  const account = { direccion: '', ciudad: '', provincia: '', ...data, id: require('node:crypto').randomUUID(), password_hash: passwordHash, auth_version: 0, estado: 'Activo', fechaAlta: new Date().toISOString() };
   accounts.push(account); return publicAccount(account);
 };
 const images = new Map();
@@ -92,8 +98,8 @@ store.deleteService = async (account, id) => {
 store.findBySlug = async (slug) => {
   const account = await store.findAccountBySlug(slug);
   if (!account || account.estado !== 'Activo') return undefined;
-  const { nombre, telefono, direccion, ciudad, provincia, hasCover, hasProfile, reviewsUrl } = account;
-  return { nombre, slug, telefono, direccion, ciudad, provincia, hasCover, hasProfile, reviewsUrl };
+  const { nombre, telefono, direccion, ciudad, provincia, hasCover, hasProfile, reviewsUrl, mapsUrl } = account;
+  return { nombre, slug, telefono, direccion, ciudad, provincia, hasCover, hasProfile, reviewsUrl, mapsUrl };
 };
 store.saveImage = async (id, version, kind, image) => {
   const account = await store.findAccountById(id);

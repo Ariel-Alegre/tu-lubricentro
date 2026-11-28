@@ -27,10 +27,15 @@ async function save(req, res) {
   }
   const body = req.body || {};
   const data = {};
-  for (const field of ['nombre', 'email', 'telefono', 'direccion', 'ciudad', 'provincia', 'responsable']) {
+  for (const field of ['nombre', 'email', 'telefono', 'responsable']) {
     if (typeof body[field] !== 'string' || !body[field].trim() || body[field].length > 320) {
       return res.status(400).json({ message: 'Completá los datos del lubricentro' });
     }
+    data[field] = body[field].trim();
+  }
+  for (const field of ['direccion', 'ciudad', 'provincia']) {
+    if (body[field] === undefined) continue;
+    if (typeof body[field] !== 'string' || body[field].length > 320) return res.status(400).json({ message: 'La ubicación no es válida' });
     data[field] = body[field].trim();
   }
   data.email = data.email.toLowerCase();

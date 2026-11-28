@@ -9,10 +9,9 @@ import ServiceSettings from './admin/service-settings';
 import type { Tenant } from '../lib/tenant-session';
 import { formatPrice, type Product } from '../lib/products';
 import ProductPhoto from '../components/product-photo';
-import GoogleReviews from '../components/google-reviews';
-import ReviewsSettings from './admin/reviews-settings';
+import LocationSettings from './admin/location-settings';
 
-export type Comercio = { nombre: string; slug: string; telefono: string; direccion: string; ciudad: string; provincia: string; reviewsUrl?: string; hasCover?: boolean; hasProfile?: boolean; services?: { id: string; nombre: string; descripcion: string }[]; products?: Product[] };
+export type Comercio = { nombre: string; slug: string; telefono: string; direccion: string; ciudad: string; provincia: string; mapsUrl?: string; reviewsUrl?: string; hasCover?: boolean; hasProfile?: boolean; services?: { id: string; nombre: string; descripcion: string }[]; products?: Product[] };
 
 type Editor = { imageVersion: number; catalogVersion: number; activeTab: string; onTabChange: (tab: string) => void; onOpenMenu: () => void; onImageUpdated: (tenant: Tenant) => void; onLogout: () => void };
 
@@ -37,7 +36,7 @@ export default function BusinessProfile({ comercio, editor, publicImageVersion =
   const contact = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(`Hola ${comercio.nombre}, quisiera hacer una consulta.`)}`;
   const appointment = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(`Hola ${comercio.nombre}, quisiera consultar disponibilidad para un turno.`)}`;
   const productContact = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(`Hola ${comercio.nombre}, quisiera consultar los productos disponibles y sus precios.`)}`;
-  const maps = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(`${comercio.direccion}, ${comercio.ciudad}, ${comercio.provincia}`)}`;
+  const maps = comercio.mapsUrl || '';
 
   async function share() {
     setShareError('');
@@ -49,7 +48,7 @@ export default function BusinessProfile({ comercio, editor, publicImageVersion =
   }
 
   const information = <>
-    <div className="business-detail"><EnvironmentOutlined /><div><strong>{comercio.direccion}</strong><span>{comercio.ciudad}, {comercio.provincia}</span><a href={maps} target="_blank" rel="noreferrer">Ver cómo llegar</a></div></div>
+    {maps && <div className="business-detail"><EnvironmentOutlined /><div><strong>Ubicación del lubricentro</strong><a href={maps} target="_blank" rel="noopener noreferrer">Ver cómo llegar</a></div></div>}
     <div className="business-detail"><PhoneOutlined /><div><a href={`tel:${comercio.telefono.replace(/[^\d+]/g, '')}`}>{comercio.telefono}</a><span>Comunicate con el comercio</span></div></div>
     <div className="business-detail"><ClockCircleOutlined /><div><strong>Horarios de atención</strong><span>Consultá los horarios directamente con el lubricentro.</span></div></div>
   </>;
@@ -70,7 +69,7 @@ export default function BusinessProfile({ comercio, editor, publicImageVersion =
         </div>
         <div className="business-identity">
           <div className="business-avatar-wrap"><div className="business-avatar"><Image src={profileSrc} alt={`Perfil de ${comercio.nombre}`} width={140} height={140} className={customProfile ? '' : 'business-default-avatar'} unoptimized={Boolean(customProfile)} onError={() => setProfileFailedVersion(imageVersion)} /></div>{editor && <ImageUpload slug={comercio.slug} kind="profile" onUpdate={editor.onImageUpdated} />}</div>
-          <div className="business-name"><span className="business-category"><ShopOutlined /> Lubricentro</span><h1>{comercio.nombre}</h1><p><EnvironmentOutlined /> {comercio.ciudad}, {comercio.provincia}</p></div>
+          <div className="business-name"><span className="business-category"><ShopOutlined /> Lubricentro</span><h1>{comercio.nombre}</h1>{maps && <p><EnvironmentOutlined /> <a href={maps} target="_blank" rel="noopener noreferrer">Ver ubicación en Google Maps</a></p>}</div>
           <div className="business-main-actions"><Button type="primary" icon={<WhatsAppOutlined />} href={contact} target="_blank" rel="noreferrer">Enviar mensaje</Button><Button icon={copied ? <CheckOutlined /> : <ShareAltOutlined />} onClick={share} aria-label="Compartir lubricentro">{copied ? 'Copiado' : 'Compartir'}</Button></div>
         </div>
         {shareError && <p className="business-share-error" role="alert">{shareError}</p>}
@@ -81,9 +80,9 @@ export default function BusinessProfile({ comercio, editor, publicImageVersion =
 
       <div className="business-body">
         <aside className="business-sidebar">
-          {editor ? <ReviewsSettings slug={comercio.slug} reviewsUrl={comercio.reviewsUrl} onUpdate={editor.onImageUpdated} /> : <GoogleReviews url={comercio.reviewsUrl} />}
-          <section className="business-card"><h2>Presentación</h2><p className="business-intro">Conocé {comercio.nombre} y encontrá toda la información para tu próxima visita.</p><div className="business-detail"><ShopOutlined /><div><strong>Servicio automotor</strong><span>Lubricentro en {comercio.ciudad}</span></div></div>{information}</section>
-          <section className="business-card business-visit"><span className="business-card-icon"><EnvironmentOutlined /></span><h2>Vení a conocernos</h2><p>{comercio.direccion}<br />{comercio.ciudad}, {comercio.provincia}</p><Button block icon={<EnvironmentOutlined />} href={maps} target="_blank" rel="noreferrer">Cómo llegar</Button></section>
+          {editor && <LocationSettings slug={comercio.slug} mapsUrl={comercio.mapsUrl} onUpdate={editor.onImageUpdated} />}
+          <section className="business-card"><h2>Presentación</h2><p className="business-intro">Conocé {comercio.nombre} y encontrá toda la información para tu próxima visita.</p><div className="business-detail"><ShopOutlined /><div><strong>Servicio automotor</strong><span>Atención para tu vehículo</span></div></div>{information}</section>
+          {maps && <section className="business-card business-visit"><span className="business-card-icon"><EnvironmentOutlined /></span><h2>Vení a conocernos</h2><p>Encontrá nuestro lubricentro en Google Maps y elegí la mejor ruta para visitarnos.</p><Button block icon={<EnvironmentOutlined />} href={maps} target="_blank" rel="noopener noreferrer">Cómo llegar</Button></section>}
           <p className="business-powered">Un comercio en <strong>Tu Lubricentro</strong></p>
         </aside>
 
@@ -91,7 +90,7 @@ export default function BusinessProfile({ comercio, editor, publicImageVersion =
           {tab === 'inicio' && <>
             <section className="business-card business-contact-strip"><div className="business-contact-icon"><ShoppingOutlined /></div><div><h2>Productos para tu vehículo</h2><p>Consultá los productos disponibles en este lubricentro.</p></div><Button onClick={() => setTab('productos')}>Ver productos</Button></section>
             <section className="business-card business-contact-strip"><div className="business-contact-icon"><CalendarOutlined /></div><div><h2>¿Tu vehículo necesita atención?</h2><p>Consultá disponibilidad y coordiná tu próxima visita.</p></div><Button type="primary" href={appointment} target="_blank" rel="noreferrer">Consultar turno</Button></section>
-            <section className="business-card business-welcome"><div className="business-post-head"><div className="business-post-avatar">{initials}</div><div><strong>{comercio.nombre}</strong><span>Información del comercio</span></div></div><h2>Bienvenido a nuestro espacio</h2><p>Ahora podés encontrar nuestros datos de contacto y ubicación en un solo lugar. Escribinos para consultar servicios, horarios o disponibilidad.</p><div className="business-welcome-art"><ShopOutlined /><div><span>CERCA TUYO, EN {comercio.ciudad.toUpperCase()}</span><strong>Tu próxima visita<br />empieza acá.</strong></div></div><div className="business-post-footer"><MessageOutlined /> ¿Tenés una consulta? <a href={contact} target="_blank" rel="noreferrer">Hablemos por WhatsApp</a></div></section>
+            <section className="business-card business-welcome"><div className="business-post-head"><div className="business-post-avatar">{initials}</div><div><strong>{comercio.nombre}</strong><span>Información del comercio</span></div></div><h2>Bienvenido a nuestro espacio</h2><p>Ahora podés encontrar nuestros datos de contacto en un solo lugar. Escribinos para consultar servicios, horarios o disponibilidad.</p><div className="business-welcome-art"><ShopOutlined /><div><span>EL CUIDADO QUE TU VEHÍCULO NECESITA</span><strong>Tu próxima visita<br />empieza acá.</strong></div></div><div className="business-post-footer"><MessageOutlined /> ¿Tenés una consulta? <a href={contact} target="_blank" rel="noreferrer">Hablemos por WhatsApp</a></div></section>
             <section className="business-card business-contact-strip"><div className="business-contact-icon"><ToolOutlined /></div><div><h2>Servicios del lubricentro</h2><p>Conocé qué trabajos realiza {comercio.nombre}.</p></div><Button onClick={() => setTab('servicios')}>Ver servicios</Button></section>
           </>}
           {tab === 'informacion' && <section className="business-card"><h2><InfoCircleOutlined /> Información de {comercio.nombre}</h2><p className="business-intro">Todo lo que necesitás para comunicarte y encontrarnos.</p>{information}<Button type="primary" icon={<WhatsAppOutlined />} href={contact} target="_blank" rel="noreferrer">Consultar horarios</Button></section>}
