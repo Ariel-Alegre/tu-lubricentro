@@ -68,7 +68,7 @@ async function database() {
   return pool;
 }
 
-const PUBLIC_COLUMNS = 'id, nombre, slug, email, telefono, direccion, ciudad, provincia, responsable, estado, opening_hours AS "openingHours", business_open AS "isOpen", google_reviews_url AS "reviewsUrl", google_maps_url AS "mapsUrl", fecha_alta AS "fechaAlta", (cover_image_key IS NOT NULL OR cover_image IS NOT NULL) AS "hasCover", (profile_image_key IS NOT NULL OR profile_image IS NOT NULL) AS "hasProfile"';
+const PUBLIC_COLUMNS = 'id, nombre, slug, email, telefono, direccion, ciudad, provincia, responsable, estado, opening_hours AS "openingHours", google_reviews_url AS "reviewsUrl", google_maps_url AS "mapsUrl", fecha_alta AS "fechaAlta", (cover_image_key IS NOT NULL OR cover_image IS NOT NULL) AS "hasCover", (profile_image_key IS NOT NULL OR profile_image IS NOT NULL) AS "hasProfile"';
 const PRODUCT_COLUMNS = 'id, nombre, descripcion, precio, stock, image_key IS NOT NULL AS "hasImage"';
 
 async function transaction(work) {
@@ -79,9 +79,9 @@ async function transaction(work) {
 }
 
 module.exports = {
-  async saveOpeningHours(account, openingHours, isOpen) {
-    return (await (await database()).query(`UPDATE panel_lubricentros SET opening_hours=$1::jsonb, business_open=$2
-      WHERE id=$3 AND estado='Activo' AND auth_version=$4 RETURNING ${PUBLIC_COLUMNS}`, [JSON.stringify(openingHours), isOpen, account.id, account.auth_version])).rows[0];
+  async saveOpeningHours(account, openingHours) {
+    return (await (await database()).query(`UPDATE panel_lubricentros SET opening_hours=$1::jsonb, business_open=NULL
+      WHERE id=$2 AND estado='Activo' AND auth_version=$3 RETURNING ${PUBLIC_COLUMNS}`, [JSON.stringify(openingHours), account.id, account.auth_version])).rows[0];
   },
   async saveMapsUrl(account, url) {
     return (await (await database()).query(`UPDATE panel_lubricentros SET google_maps_url=$1
@@ -165,7 +165,7 @@ module.exports = {
     return (await (await database()).query(`SELECT ${PUBLIC_COLUMNS} FROM panel_lubricentros ORDER BY fecha_alta DESC`)).rows;
   },
   async findBySlug(slug) {
-    return (await (await database()).query(`SELECT nombre, slug, telefono, direccion, ciudad, provincia, opening_hours AS "openingHours", business_open AS "isOpen", google_reviews_url AS "reviewsUrl", google_maps_url AS "mapsUrl", (cover_image_key IS NOT NULL OR cover_image IS NOT NULL) AS "hasCover", (profile_image_key IS NOT NULL OR profile_image IS NOT NULL) AS "hasProfile" FROM panel_lubricentros WHERE slug=$1 AND estado='Activo'`, [slug])).rows[0];
+    return (await (await database()).query(`SELECT nombre, slug, telefono, direccion, ciudad, provincia, opening_hours AS "openingHours", google_reviews_url AS "reviewsUrl", google_maps_url AS "mapsUrl", (cover_image_key IS NOT NULL OR cover_image IS NOT NULL) AS "hasCover", (profile_image_key IS NOT NULL OR profile_image IS NOT NULL) AS "hasProfile" FROM panel_lubricentros WHERE slug=$1 AND estado='Activo'`, [slug])).rows[0];
   },
   async findAccountBySlug(slug) {
     return (await (await database()).query(`SELECT ${PUBLIC_COLUMNS}, password_hash, auth_version FROM panel_lubricentros WHERE slug=$1`, [slug])).rows[0];

@@ -13,27 +13,47 @@ const assert = require('node:assert/strict');
   try {
     const { token } = await (await req('/api/tenant/login', { email: 'el-cano@example.test', password: '123456' })).json();
     const days = ['lunes', 'martes', 'miercoles', 'jueves', 'viernes', 'sabado', 'domingo'];
-    const openingHours = days.map((day) => ({ day, closed: false, ranges: [{ from: '09:00', to: '13:00' }, { from: '16:00', to: '20:00' }] }));
+    const openingHours = days.map((day) => ({ day, closed: day !== 'lunes', ranges: day === 'lunes' ? [{ from: '09:00', to: '13:00' }, { from: '16:00', to: '18:00' }] : [] }));
     assert.equal((await req('/api/tenant/el-cano/location', { mapsUrl: 'https://maps.app.goo.gl/test' }, token)).status, 200);
-    assert.equal((await req('/api/tenant/el-cano/hours', { openingHours, isOpen: false }, token)).status, 200);
+    assert.equal((await req('/api/tenant/el-cano/hours', { openingHours, isOpen: true }, token)).status, 200);
+    await call('Page.enable');
+    await call('Emulation.setTimezoneOverride', { timezoneId: 'Asia/Tokyo' });
+    await call('Page.addScriptToEvaluateOnNewDocument', { source: `(()=>{
+      const NativeDate=Date; let base=NativeDate.parse('2026-11-23T11:00:00Z'); let start=NativeDate.now();
+      window.__setClock=(iso)=>{base=NativeDate.parse(iso);start=NativeDate.now()};
+      window.Date=class extends NativeDate {constructor(...args){if(args.length)super(...args);else super(base+NativeDate.now()-start)}static now(){return base+NativeDate.now()-start}};
+    })()` });
+    async function clock(iso) { await ev(`window.__setClock(${JSON.stringify(iso)});window.dispatchEvent(new Event('focus'))`); }
     await call('Page.navigate', { url: 'http://localhost:3102/el-cano' });
+    await wait('typeof window.__setClock==="function"');
     await wait('document.querySelector(".business-name-heading h1")?.getBoundingClientRect().width>0 && document.querySelector(".business-open-status")?.textContent==="Cerrado ahora"');
     assert.equal(await ev('Boolean(document.querySelector(".business-name-heading .business-open-status"))'), true);
     assert.equal(await ev(`(()=>{const style=getComputedStyle(document.querySelector('.business-maps-link'));return style.color==='rgb(21, 95, 160)'&&style.textDecorationLine.includes('underline')&&style.cursor==='pointer'})()`), true);
     await ev('window.__sameBusiness=true');
-    assert.equal((await req('/api/tenant/el-cano/hours', { openingHours, isOpen: true }, token)).status, 200);
-    await wait('document.querySelector(".business-open-status")?.textContent==="Abierto ahora" && document.querySelector(".business-today-hours")?.textContent==="Hoy: de 09:00 a 13:00 y de 16:00 a 20:00"');
-    const changed = days.map((day) => ({ day, closed: false, ranges: [{ from: '10:00', to: '18:00' }] }));
-    await req('/api/tenant/el-cano/hours', { openingHours: changed, isOpen: true }, token);
-    await wait('document.querySelector(".business-today-hours")?.textContent==="Hoy: de 10:00 a 18:00"');
+    await clock('2026-11-23T12:00:00Z');
+    await wait('document.querySelector(".business-open-status")?.textContent==="Abierto ahora" && document.querySelector(".business-today-hours")?.textContent==="Hoy: de 09:00 a 13:00 y de 16:00 a 18:00"');
+    await clock('2026-11-23T16:00:00Z');
+    await wait('document.querySelector(".business-open-status")?.textContent==="Cerrado ahora"');
+    await clock('2026-11-23T19:00:00Z');
+    await wait('document.querySelector(".business-open-status")?.textContent==="Abierto ahora"');
+    // Cruzar las 18:00 sin eventos ni escrituras: debe cerrar por su propio temporizador.
+    await clock('2026-11-23T20:59:55.500Z');
+    await wait('document.querySelector(".business-open-status")?.textContent==="Abierto ahora"');
+    await wait('document.querySelector(".business-open-status")?.textContent==="Cerrado ahora"');
+    await clock('2026-11-23T13:00:00Z');
+    await wait('document.querySelector(".business-open-status")?.textContent==="Abierto ahora"');
+    const changed = days.map((day) => ({ day, closed: day !== 'lunes', ranges: day === 'lunes' ? [{ from: '11:00', to: '18:00' }] : [] }));
+    await req('/api/tenant/el-cano/hours', { openingHours: changed }, token);
+    await wait('document.querySelector(".business-open-status")?.textContent==="Cerrado ahora"');
+    await clock('2026-11-23T14:00:00Z');
+    await wait('document.querySelector(".business-today-hours")?.textContent==="Hoy: de 11:00 a 18:00"');
     for (const width of [390, 360]) { await call('Emulation.setDeviceMetricsOverride', { width, height: 844, deviceScaleFactor: 1, mobile: false }); assert.equal(await ev('document.documentElement.scrollWidth<=innerWidth'), true); }
-    await req('/api/tenant/el-cano/hours', { openingHours: changed, isOpen: false }, token);
+    await clock('2026-11-24T14:00:00Z');
     await wait('document.querySelector(".business-open-status")?.textContent==="Cerrado ahora" && !document.querySelector(".business-today-hours")');
     await req('/api/tenant/el-cano/hours', { openingHours: days.map((day) => ({ day, closed: true, ranges: [] })), isOpen: true }, token);
-    await wait('document.querySelector(".business-today-hours")?.textContent==="Horario de hoy no publicado"');
-    await req('/api/tenant/el-cano/hours', { openingHours: changed, isOpen: null }, token);
-    await wait('!document.querySelector(".business-status-summary")');
+    await clock('2026-11-23T14:00:00Z');
+    await wait('document.querySelector(".business-open-status")?.textContent==="Cerrado ahora"');
     assert.equal(await ev('window.__sameBusiness'), true);
-    console.log('PASS: estado junto al nombre, horarios de hoy por socket, enlace azul/subrayado/pointer y móvil sin desbordes.');
+    console.log('PASS: apertura, pausa, reapertura, cierre automático a las 18 sin recargar, días cerrados, hora Argentina aunque el navegador use Tokio, cambios por socket y móvil.');
   } finally { ws.close(); }
 })().catch((e) => { console.error(e); process.exitCode = 1; });

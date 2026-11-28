@@ -32,13 +32,11 @@ router.use('/:slug/customers', require('./customers'));
 router.get('/:slug/session', requireTenant, (req, res) => res.set('Cache-Control', 'no-store').json(publicAccount(req.tenant)));
 router.post('/:slug/socket', requireTenant, (req, res) => res.set('Cache-Control', 'no-store').json({ ticket: signAccount(req.tenant, true) }));
 router.post('/:slug/hours', requireTenant, async (req, res) => {
-  const { isOpen } = req.body || {};
-  if (isOpen !== null && typeof isOpen !== 'boolean') return res.status(400).json({ message: 'Elegí abierto, cerrado o sin indicar' });
   let openingHours;
-  try { openingHours = normalizeHours(req.body.openingHours); }
+  try { openingHours = normalizeHours(req.body?.openingHours); }
   catch (error) { return res.status(400).json({ message: error.message }); }
   try {
-    const account = await store.saveOpeningHours(req.tenant, openingHours, isOpen);
+    const account = await store.saveOpeningHours(req.tenant, openingHours);
     if (!account) return res.status(403).json({ message: 'Tu acceso cambió. Volvé a iniciar sesión.' });
     publishProfileChange(req.tenant.id, req.tenant.slug);
     res.set('Cache-Control', 'no-store').json(account);
