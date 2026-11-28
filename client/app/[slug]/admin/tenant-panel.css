@@ -2,7 +2,11 @@
 .tenant-sidebar { background: white; border-right: 1px solid #e5eaf0; }
 .tenant-admin-sidebar { position: sticky; top: 0; height: 100dvh; display: flex; flex-direction: column; }
 .tenant-navigation-menu { border-inline-end: 0 !important; }
-.tenant-sidebar-footer { margin-top: auto; padding: 24px 20px; border-top: 1px solid #edf0f5; }
+.tenant-sidebar-bottom { margin-top: auto; flex-shrink: 0; }
+.tenant-admin-sidebar, .ant-drawer-body:has(> .tenant-sidebar-bottom) { overflow: hidden; }
+.tenant-navigation-menu { min-height: 0; overflow-y: auto; }
+.tenant-brand { flex-shrink: 0; }
+.tenant-sidebar-footer { padding: 24px 20px; border-top: 1px solid #edf0f5; }
 .tenant-sidebar-footer strong { display: block; color: #34475e; font-size: 14px; overflow-wrap: anywhere; }
 .tenant-sidebar-footer span { display: block; margin-top: 6px; color: #8190a3; font-size: 12px; }
 .tenant-main .business-body { width: calc(100% - 48px); }

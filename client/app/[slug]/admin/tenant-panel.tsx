@@ -24,13 +24,14 @@ export default function TenantPanel({ tenant: initialTenant, children }: { tenan
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState('');
   const slug = initialTenant.slug;
-  const view = pathname === `/${slug}/admin/productos` ? 'products' : pathname === `/${slug}/admin/clientes` ? 'customers' : pathname === `/${slug}/admin/servicios` ? 'services' : 'profile';
+  const view = pathname === `/${slug}/admin/productos` ? 'products' : pathname === `/${slug}/admin` || pathname === `/${slug}/admin/clientes` ? 'customers' : pathname === `/${slug}/admin/servicios` ? 'services' : 'profile';
 
   useEffect(() => {
     if (!connected) return;
     router.prefetch(`/${slug}/admin`);
     router.prefetch(`/${slug}/admin/productos`);
     router.prefetch(`/${slug}/admin/clientes`);
+    router.prefetch(`/${slug}/admin/mi-lubricentro`);
     router.prefetch(`/${slug}/admin/servicios`);
   }, [connected, slug, router]);
 
@@ -125,20 +126,22 @@ export default function TenantPanel({ tenant: initialTenant, children }: { tenan
     <Menu theme="light" className="tenant-navigation-menu" mode="inline" selectedKeys={[view === 'products' ? 'productos' : view === 'customers' ? 'clientes' : view === 'services' ? 'servicios' : 'inicio']} onClick={({ key }) => {
       setMobileMenuOpen(false);
       if (key === 'productos') router.push(`/${slug}/admin/productos`);
-      else if (key === 'clientes') router.push(`/${slug}/admin/clientes`);
+      else if (key === 'clientes') router.push(`/${slug}/admin`);
       else if (key === 'servicios') router.push(`/${slug}/admin/servicios`);
       else if (key === 'password') setPasswordOpen(true);
-      else { setActiveTab('inicio'); if (view !== 'profile') router.push(`/${slug}/admin`); }
+      else { setActiveTab('inicio'); if (view !== 'profile') router.push(`/${slug}/admin/mi-lubricentro`); }
     }} items={[
       { key: 'inicio', label: 'Mi lubricentro', icon: <AppstoreOutlined /> },
+      { key: 'clientes', label: 'Clientes', icon: <TeamOutlined /> },
       { key: 'productos', label: 'Productos', icon: <ShoppingOutlined /> },
       { key: 'servicios', label: 'Servicios', icon: <ToolOutlined /> },
-      { key: 'clientes', label: 'Clientes', icon: <TeamOutlined /> },
       { key: 'configuracion', label: 'Configuración', icon: <SettingOutlined />, children: [
         { key: 'password', label: 'Cambiar contraseña', icon: <LockOutlined /> },
       ] },
     ]} />
-    <div className="tenant-sidebar-footer"><strong>{tenant.nombre}</strong><span>Panel administrativo</span></div>
+    <div className="tenant-sidebar-bottom">
+      <div className="tenant-sidebar-footer"><strong>{tenant.nombre}</strong><span>Panel administrativo</span></div>
+    </div>
   </>;
 
   return <ConfigProvider theme={{ token: { colorPrimary: '#155fa0' } }}>

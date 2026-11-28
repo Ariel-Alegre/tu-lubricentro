@@ -9,8 +9,10 @@ import ServiceSettings from './admin/service-settings';
 import type { Tenant } from '../lib/tenant-session';
 import { formatPrice, type Product } from '../lib/products';
 import ProductPhoto from '../components/product-photo';
+import GoogleReviews from '../components/google-reviews';
+import ReviewsSettings from './admin/reviews-settings';
 
-export type Comercio = { nombre: string; slug: string; telefono: string; direccion: string; ciudad: string; provincia: string; hasCover?: boolean; hasProfile?: boolean; services?: { id: string; nombre: string; descripcion: string }[]; products?: Product[] };
+export type Comercio = { nombre: string; slug: string; telefono: string; direccion: string; ciudad: string; provincia: string; reviewsUrl?: string; hasCover?: boolean; hasProfile?: boolean; services?: { id: string; nombre: string; descripcion: string }[]; products?: Product[] };
 
 type Editor = { imageVersion: number; catalogVersion: number; activeTab: string; onTabChange: (tab: string) => void; onOpenMenu: () => void; onImageUpdated: (tenant: Tenant) => void; onLogout: () => void };
 
@@ -79,6 +81,7 @@ export default function BusinessProfile({ comercio, editor, publicImageVersion =
 
       <div className="business-body">
         <aside className="business-sidebar">
+          {editor ? <ReviewsSettings slug={comercio.slug} reviewsUrl={comercio.reviewsUrl} onUpdate={editor.onImageUpdated} /> : <GoogleReviews url={comercio.reviewsUrl} />}
           <section className="business-card"><h2>Presentación</h2><p className="business-intro">Conocé {comercio.nombre} y encontrá toda la información para tu próxima visita.</p><div className="business-detail"><ShopOutlined /><div><strong>Servicio automotor</strong><span>Lubricentro en {comercio.ciudad}</span></div></div>{information}</section>
           <section className="business-card business-visit"><span className="business-card-icon"><EnvironmentOutlined /></span><h2>Vení a conocernos</h2><p>{comercio.direccion}<br />{comercio.ciudad}, {comercio.provincia}</p><Button block icon={<EnvironmentOutlined />} href={maps} target="_blank" rel="noreferrer">Cómo llegar</Button></section>
           <p className="business-powered">Un comercio en <strong>Tu Lubricentro</strong></p>

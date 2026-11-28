@@ -1,0 +1,7 @@
+.google-reviews-card { padding: 24px; margin-bottom: 24px; background: #fff; border: 1px solid #e2e8ef; border-radius: 14px; display: flex; flex-direction: column; align-items: flex-start; gap: 14px; }
+.google-reviews-star { color: #c48a16; font-size: 28px; }
+.google-reviews-card h2 { margin: 0 0 8px; color: #24354d; font-size: 19px; font-weight: 650; }
+.google-reviews-card p { margin: 0; color: #718096; font-size: 14px; line-height: 1.6; }
+.google-reviews-card a { display: inline-flex; gap: 8px; align-items: center; justify-content: center; max-width: 100%; padding: 10px 14px; border-radius: 9px; background: #155fa0; color: #fff; font-size: 14px; font-weight: 600; text-decoration: none; }
+.google-reviews-card a:hover { background: #124f85; color: #fff; }
+.google-reviews-card a:focus-visible { outline: 3px solid #83b9ec; outline-offset: 3px; }

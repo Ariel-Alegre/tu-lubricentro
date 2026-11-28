@@ -45,9 +45,9 @@ function methods({ database, transaction }) {
   }
   async function publicDetail(record) {
     if (!record) return null;
-    const { vehicleId, ownerId, ...publicFields } = record;
+    const { vehicleId, ownerId, reviewsUrl, ...publicFields } = record;
     const visits = (await (await database()).query(`SELECT id, to_char(fecha,'YYYY-MM-DD') AS fecha, servicio, productos, kilometraje FROM lubricentro_atenciones WHERE lubricentro_id=$1 AND vehiculo_id=$2 ORDER BY fecha DESC, creada DESC, id DESC`, [ownerId, vehicleId])).rows;
-    return { ...publicFields, visitas: visits };
+    return { ...publicFields, ...(reviewsUrl ? { reviewsUrl } : {}), visitas: visits };
   }
   return {
     async shareCustomerHistory(account, id) {
@@ -59,13 +59,13 @@ function methods({ database, transaction }) {
       });
     },
     async sharedVehicle(token) {
-      return (await (await database()).query(`SELECT v.id AS "vehicleId", v.lubricentro_id AS "ownerId", l.nombre AS lubricentro, l.slug, v.patente, v.marca, v.modelo FROM lubricentro_vehiculos v JOIN panel_lubricentros l ON l.id=v.lubricentro_id WHERE v.history_token=$1 AND l.estado='Activo'`, [token])).rows[0];
+      return (await (await database()).query(`SELECT v.id AS "vehicleId", v.lubricentro_id AS "ownerId", l.nombre AS lubricentro, l.slug, l.google_reviews_url AS "reviewsUrl", v.patente, v.marca, v.modelo FROM lubricentro_vehiculos v JOIN panel_lubricentros l ON l.id=v.lubricentro_id WHERE v.history_token=$1 AND l.estado='Activo'`, [token])).rows[0];
     },
     async publicCustomerHistory(token) {
       return publicDetail(await this.sharedVehicle(token));
     },
     async sharedVehicleByPlate(slug, plate) {
-      return (await (await database()).query(`SELECT v.id AS "vehicleId", v.lubricentro_id AS "ownerId", l.nombre AS lubricentro, l.slug, v.patente, v.marca, v.modelo FROM lubricentro_vehiculos v JOIN panel_lubricentros l ON l.id=v.lubricentro_id WHERE l.slug=$1 AND v.patente=$2 AND l.estado='Activo'`, [slug, plate])).rows[0];
+      return (await (await database()).query(`SELECT v.id AS "vehicleId", v.lubricentro_id AS "ownerId", l.nombre AS lubricentro, l.slug, l.google_reviews_url AS "reviewsUrl", v.patente, v.marca, v.modelo FROM lubricentro_vehiculos v JOIN panel_lubricentros l ON l.id=v.lubricentro_id WHERE l.slug=$1 AND v.patente=$2 AND l.estado='Activo'`, [slug, plate])).rows[0];
     },
     async publicCustomerHistoryByPlate(slug, plate) {
       return publicDetail(await this.sharedVehicleByPlate(slug, plate));

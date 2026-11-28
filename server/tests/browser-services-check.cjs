@@ -28,7 +28,7 @@ const path = require('node:path');
   }
   try {
     await evaluate(`(async()=>{await fetch('/api/tenant/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:'el-cano@example.test',password:'123456'})})})()`);
-    await call('Page.navigate', { url: 'http://localhost:3102/el-cano/admin' });
+    await call('Page.navigate', { url: 'http://localhost:3102/el-cano/admin/mi-lubricentro' });
     await waitFor('(()=>{const tab=[...document.querySelectorAll("[role=tab]")].find(x=>x.textContent==="Servicios");if(tab?.getAttribute("aria-selected")==="false")tab.click();const button=document.querySelector(".tenant-service-heading button");return Boolean(button&&!button.disabled)})()');
     await evaluate('document.querySelector(".tenant-service-heading button").click()');
     await waitFor('document.querySelector(".tenant-service-modal input")?.getBoundingClientRect().width > 0');
@@ -53,7 +53,7 @@ const path = require('node:path');
       const shot = await call('Page.captureScreenshot', { format: 'png' });
       fs.writeFileSync(path.join(process.env.TEMP, `lubricentro-services-${name}.png`), Buffer.from(shot.data, 'base64'));
     }
-    await call('Page.navigate', { url: 'http://localhost:3102/el-cano/admin' });
+    await call('Page.navigate', { url: 'http://localhost:3102/el-cano/admin/mi-lubricentro' });
     await waitFor('(()=>{const tab=[...document.querySelectorAll("[role=tab]")].find(x=>x.textContent==="Servicios");if(tab?.getAttribute("aria-selected")==="false")tab.click();return Boolean(document.querySelector(".tenant-service-actions button[aria-label^=Eliminar]"))})()');
     await evaluate('document.querySelector(".tenant-service-actions button[aria-label^=Eliminar]").click()');
     await waitFor('Boolean(document.querySelector(".ant-popconfirm-buttons .ant-btn-primary"))');

@@ -31,7 +31,7 @@ const { randomUUID } = require('node:crypto');
     await waitFor('location.origin==="http://localhost:3102" && Boolean(document.querySelector("form"))');
     await evaluate(`(async()=>{const r=await fetch('/api/tenant/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email:'el-cano@example.test',password:'123456'})});if(!r.ok)throw new Error('Login falló')})()`);
     await call('Page.navigate', { url: 'http://localhost:3102/el-cano/admin' });
-    await waitFor('(()=>{const item=[...document.querySelectorAll(".tenant-admin-sidebar .ant-menu-item")].find(x=>x.textContent==="Clientes");if(item)item.click();return location.pathname==="/el-cano/admin/clientes"})()');
+    await waitFor('(()=>{const item=[...document.querySelectorAll(".tenant-admin-sidebar .ant-menu-item")].find(x=>x.textContent==="Clientes");if(item)item.click();return location.pathname==="/el-cano/admin"})()');
     await waitFor('Boolean(document.querySelector(".tenant-products-title button")) && !document.querySelector(".tenant-products-title button").disabled');
     await evaluate('document.querySelector(".tenant-products-title button").click()');
     await waitFor('document.querySelector(".customer-modal #nombre")?.getBoundingClientRect().width>0');

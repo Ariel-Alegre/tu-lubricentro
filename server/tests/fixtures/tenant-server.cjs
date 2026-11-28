@@ -18,6 +18,12 @@ const accounts = ['el-cano', 'lorenzo'].map((slug, index) => ({
 store.findAccountById = async (id) => accounts.find((item) => item.id === id);
 store.findAccountBySlug = async (slug) => accounts.find((item) => item.slug === slug);
 store.findAccountByEmail = async (email) => accounts.find((item) => item.email === email);
+store.saveReviewsUrl = async (current, reviewsUrl) => {
+  const account = accounts.find((item) => item.id === current.id && item.estado === 'Activo' && item.auth_version === current.auth_version);
+  if (!account) return undefined;
+  account.reviewsUrl = reviewsUrl;
+  return publicAccount(account);
+};
 store.changePassword = async (current, passwordHash) => {
   const account = accounts.find((item) => item.id === current.id && item.estado === 'Activo' && item.auth_version === current.auth_version && item.password_hash === current.password_hash);
   if (!account) return undefined;
@@ -86,8 +92,8 @@ store.deleteService = async (account, id) => {
 store.findBySlug = async (slug) => {
   const account = await store.findAccountBySlug(slug);
   if (!account || account.estado !== 'Activo') return undefined;
-  const { nombre, telefono, direccion, ciudad, provincia, hasCover, hasProfile } = account;
-  return { nombre, slug, telefono, direccion, ciudad, provincia, hasCover, hasProfile };
+  const { nombre, telefono, direccion, ciudad, provincia, hasCover, hasProfile, reviewsUrl } = account;
+  return { nombre, slug, telefono, direccion, ciudad, provincia, hasCover, hasProfile, reviewsUrl };
 };
 store.saveImage = async (id, version, kind, image) => {
   const account = await store.findAccountById(id);
@@ -120,6 +126,12 @@ async function start() {
   if (process.argv.includes('--customers')) {
     const memory = await require('./customers-db.cjs')(accounts);
     Object.assign(store, memory.methods);
+    const saveReviewsUrl = store.saveReviewsUrl;
+    store.saveReviewsUrl = async (current, url) => {
+      const record = await saveReviewsUrl(current, url);
+      if (record) await memory.db.query('UPDATE panel_lubricentros SET google_reviews_url=$1 WHERE id=$2', [url, current.id]);
+      return record;
+    };
     const updateStatus = store.updateStatus;
     store.updateStatus = async (id, estado) => {
       const record = await updateStatus(id, estado); const account = await store.findAccountById(id);

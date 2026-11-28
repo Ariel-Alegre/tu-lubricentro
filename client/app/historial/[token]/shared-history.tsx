@@ -7,6 +7,7 @@ import { CalendarOutlined, CarOutlined, DashboardOutlined, HistoryOutlined, Shop
 import type { SharedHistory } from '../../lib/shared-history';
 import { sharedHistoryPath } from '../../lib/shared-history';
 import { visitDate } from '../../lib/customers';
+import GoogleReviews from '../../components/google-reviews';
 import './shared-history.css';
 
 export default function SharedHistoryView({ token, slug, plate, initial, initialError, socketUrl }: { token?: string; slug?: string; plate?: string; initial: SharedHistory | null; initialError: string; socketUrl: string }) {
@@ -54,6 +55,7 @@ export default function SharedHistoryView({ token, slug, plate, initial, initial
         <section className="shared-history-hero"><div className="shared-history-brand"><span><CarOutlined /></span><div><small>MI VEHÍCULO</small><h1>{history.patente}</h1><p>{[history.marca, history.modelo].filter(Boolean).join(' ') || 'Historial del vehículo'}</p></div></div><div className="shared-history-business"><span>Atendido en</span><Link href={`/${history.slug}`}>{history.lubricentro}</Link><small>{history.visitas.length} {history.visitas.length === 1 ? 'atención registrada' : 'atenciones registradas'}</small></div></section>
         <div className="shared-history-heading"><h2>Servicios realizados</h2><p>Las nuevas atenciones de este lubricentro aparecen en el mismo enlace.</p></div>
         {history.visitas.length ? <ol className="shared-history-visits">{history.visitas.map((visit, index) => <li key={visit.id}><div className="shared-history-date"><span><CalendarOutlined /><time dateTime={visit.fecha}>{visitDate(visit.fecha)}</time></span>{index === 0 && <small>Más reciente</small>}</div><h3>{visit.servicio}</h3>{visit.kilometraje !== null && <p className="shared-history-km"><DashboardOutlined />{visit.kilometraje.toLocaleString('es-AR')} km</p>}<h4><ShoppingOutlined /> Productos utilizados</h4><div className="shared-history-products">{visit.productos.length ? visit.productos.map((product) => <span key={product}>{product}</span>) : <p>No se utilizaron productos.</p>}</div></li>)}</ol> : <section className="shared-history-empty"><p>Todavía no hay servicios registrados para este vehículo.</p></section>}
+        <GoogleReviews url={history.reviewsUrl} />
         <p className="shared-history-footnote">Este historial corresponde a los servicios registrados por {history.lubricentro}.</p>
       </>}
     </main>

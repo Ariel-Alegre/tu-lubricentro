@@ -30,6 +30,24 @@ router.use('/:slug/customers', require('./customers'));
 
 router.get('/:slug/session', requireTenant, (req, res) => res.set('Cache-Control', 'no-store').json(publicAccount(req.tenant)));
 router.post('/:slug/socket', requireTenant, (req, res) => res.set('Cache-Control', 'no-store').json({ ticket: signAccount(req.tenant, true) }));
+router.post('/:slug/reviews', requireTenant, async (req, res) => {
+  const raw = req.body?.reviewsUrl;
+  if (typeof raw !== 'string' || raw.length > 2048) return res.status(400).json({ message: 'Ingresá un enlace de reseñas de Google válido' });
+  const url = raw.trim();
+  if (url) {
+    try {
+      const parsed = new URL(url);
+      const google = /^(?:[a-z0-9-]+\.)*google\.(?:com|[a-z]{2}|com\.[a-z]{2}|co\.[a-z]{2})$/.test(parsed.hostname) || ['g.page', 'maps.app.goo.gl', 'goo.gl'].includes(parsed.hostname);
+      if (parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.port || !google) throw new Error();
+    } catch { return res.status(400).json({ message: 'Usá un enlace HTTPS de Google Maps, Google o g.page' }); }
+  }
+  try {
+    const account = await store.saveReviewsUrl(req.tenant, url);
+    if (!account) return res.status(403).json({ message: 'Tu acceso cambió. Volvé a iniciar sesión.' });
+    publishProfileChange(req.tenant.id, req.tenant.slug);
+    res.set('Cache-Control', 'no-store').json(account);
+  } catch { res.status(503).json({ message: 'No se pudo guardar el enlace de reseñas' }); }
+});
 router.post('/:slug/password', requireTenant, async (req, res) => {
   const { currentPassword, newPassword } = req.body || {};
   if (typeof currentPassword !== 'string' || !currentPassword || currentPassword.length > 128 || typeof newPassword !== 'string' || newPassword.length < 6 || newPassword.length > 128) {

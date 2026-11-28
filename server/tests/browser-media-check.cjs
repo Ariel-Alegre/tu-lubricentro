@@ -37,7 +37,7 @@ const fs = require('node:fs');
     await waitFor('location.origin === "http://localhost:3102"');
     const loginStatus = await evaluate('(async()=>{const response=await fetch("/api/tenant/login",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({email:"el-cano@example.test",password:"123456"})});return response.status})()');
     assert.equal(loginStatus, 200);
-    await call('Page.navigate', { url: 'http://localhost:3102/el-cano/admin' });
+    await call('Page.navigate', { url: 'http://localhost:3102/el-cano/admin/mi-lubricentro' });
     await waitFor('Boolean(document.querySelector(".business-page-editor .business-image-upload-cover input[type=file]"))');
     assert.equal(await evaluate('getComputedStyle(document.querySelector(".tenant-admin-sidebar")).backgroundColor'), 'rgb(255, 255, 255)', 'menú lateral blanco');
     const { root } = await call('DOM.getDocument');
