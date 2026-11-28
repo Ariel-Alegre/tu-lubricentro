@@ -18,6 +18,12 @@ const accounts = ['el-cano', 'lorenzo'].map((slug, index) => ({
 store.findAccountById = async (id) => accounts.find((item) => item.id === id);
 store.findAccountBySlug = async (slug) => accounts.find((item) => item.slug === slug);
 store.findAccountByEmail = async (email) => accounts.find((item) => item.email === email);
+store.saveOpeningHours = async (current, openingHours, isOpen) => {
+  const account = accounts.find((item) => item.id === current.id && item.estado === 'Activo' && item.auth_version === current.auth_version);
+  if (!account) return undefined;
+  Object.assign(account, { openingHours, isOpen });
+  return publicAccount(account);
+};
 store.saveMapsUrl = async (current, mapsUrl) => {
   const account = accounts.find((item) => item.id === current.id && item.estado === 'Activo' && item.auth_version === current.auth_version);
   if (!account) return undefined;
@@ -98,8 +104,8 @@ store.deleteService = async (account, id) => {
 store.findBySlug = async (slug) => {
   const account = await store.findAccountBySlug(slug);
   if (!account || account.estado !== 'Activo') return undefined;
-  const { nombre, telefono, direccion, ciudad, provincia, hasCover, hasProfile, reviewsUrl, mapsUrl } = account;
-  return { nombre, slug, telefono, direccion, ciudad, provincia, hasCover, hasProfile, reviewsUrl, mapsUrl };
+  const { nombre, telefono, direccion, ciudad, provincia, hasCover, hasProfile, reviewsUrl, mapsUrl, openingHours, isOpen } = account;
+  return { nombre, slug, telefono, direccion, ciudad, provincia, hasCover, hasProfile, reviewsUrl, mapsUrl, openingHours, isOpen };
 };
 store.saveImage = async (id, version, kind, image) => {
   const account = await store.findAccountById(id);

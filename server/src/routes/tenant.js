@@ -6,6 +6,7 @@ const router = Router();
 const bucket = require('../bucket');
 const { publishProfileChange, publishRootChange, revokeTenant } = require('../realtime');
 const { receiveImage, convertImage, cleanup } = require('../image-upload');
+const { normalizeHours } = require('../opening-hours');
 
 async function login(req, res) {
   const { email, password } = req.body || {};
@@ -30,6 +31,19 @@ router.use('/:slug/customers', require('./customers'));
 
 router.get('/:slug/session', requireTenant, (req, res) => res.set('Cache-Control', 'no-store').json(publicAccount(req.tenant)));
 router.post('/:slug/socket', requireTenant, (req, res) => res.set('Cache-Control', 'no-store').json({ ticket: signAccount(req.tenant, true) }));
+router.post('/:slug/hours', requireTenant, async (req, res) => {
+  const { isOpen } = req.body || {};
+  if (isOpen !== null && typeof isOpen !== 'boolean') return res.status(400).json({ message: 'Elegí abierto, cerrado o sin indicar' });
+  let openingHours;
+  try { openingHours = normalizeHours(req.body.openingHours); }
+  catch (error) { return res.status(400).json({ message: error.message }); }
+  try {
+    const account = await store.saveOpeningHours(req.tenant, openingHours, isOpen);
+    if (!account) return res.status(403).json({ message: 'Tu acceso cambió. Volvé a iniciar sesión.' });
+    publishProfileChange(req.tenant.id, req.tenant.slug);
+    res.set('Cache-Control', 'no-store').json(account);
+  } catch { res.status(503).json({ message: 'No se pudieron guardar los horarios' }); }
+});
 router.post('/:slug/location', requireTenant, async (req, res) => {
   const raw = req.body?.mapsUrl;
   if (typeof raw !== 'string' || raw.length > 4096) return res.status(400).json({ message: 'Ingresá un enlace de Google Maps válido' });

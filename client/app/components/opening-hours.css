@@ -1,0 +1,7 @@
+.business-opening-hours { margin: 24px 0; }
+.business-opening-hours h3 { margin: 0 0 16px; color: #34475e; font-size: 19px; font-weight: 650; }
+.business-opening-hours dl { margin: 0; }
+.business-opening-hours dl > div { display: flex; justify-content: space-between; gap: 20px; padding: 12px 0; border-bottom: 1px solid #edf0f5; font-size: 14px; line-height: 1.6; }
+.business-opening-hours dt { color: #34475e; font-weight: 600; }
+.business-opening-hours dd { margin: 0; text-align: right; color: #607087; }
+.business-opening-hours > p { color: #718096; font-size: 14px; }

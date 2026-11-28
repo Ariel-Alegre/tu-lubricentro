@@ -1,0 +1,14 @@
+.tenant-hours-settings { margin: 24px 0; }
+.tenant-hours-settings h3 { margin: 0 0 12px; font-size: 20px; font-weight: 650; }
+.tenant-hours-settings > p { margin: 0 0 20px; font-size: 14px; line-height: 1.7; color: #718096; }
+.tenant-hours-settings > .ant-alert { margin-bottom: 20px; }
+.tenant-hours-settings .ant-radio-group { display: flex; flex-wrap: wrap; gap: 8px; }
+.tenant-hours-week { display: grid; gap: 12px; margin-bottom: 24px; }
+.tenant-hours-day { padding: 16px; border: 1px solid #e2e8ef; border-radius: 12px; min-width: 0; }
+.tenant-hours-day-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.tenant-hours-day-heading > strong { font-size: 15px; color: #34475e; }
+.tenant-hours-range { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 10px; align-items: center; margin-top: 16px; }
+.tenant-hours-range .ant-form-item { min-width: 0; margin-bottom: 12px; }
+.tenant-hours-range > .ant-btn { margin-top: 16px; padding-inline: 8px; }
+.tenant-hours-range input { width: 100%; min-width: 0; }
+@media (max-width: 480px) { .tenant-hours-day { padding: 12px; } .tenant-hours-range { gap: 6px; } }

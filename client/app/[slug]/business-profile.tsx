@@ -2,7 +2,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
-import { Button, ConfigProvider, Empty, Tabs } from 'antd';
+import { Button, ConfigProvider, Empty, Tabs, Tag } from 'antd';
 import { CalendarOutlined, ClockCircleOutlined, EnvironmentOutlined, InfoCircleOutlined, HistoryOutlined, LogoutOutlined, EyeOutlined, MenuOutlined, MessageOutlined, PhoneOutlined, ShopOutlined, ShoppingOutlined, WhatsAppOutlined, ToolOutlined, ShareAltOutlined, CheckOutlined } from '@ant-design/icons';
 import ImageUpload from './admin/image-upload';
 import ServiceSettings from './admin/service-settings';
@@ -10,8 +10,11 @@ import type { Tenant } from '../lib/tenant-session';
 import { formatPrice, type Product } from '../lib/products';
 import ProductPhoto from '../components/product-photo';
 import LocationSettings from './admin/location-settings';
+import HoursSettings from './admin/hours-settings';
+import OpeningHours from '../components/opening-hours';
+import type { BusinessHours } from '../lib/opening-hours';
 
-export type Comercio = { nombre: string; slug: string; telefono: string; direccion: string; ciudad: string; provincia: string; mapsUrl?: string; reviewsUrl?: string; hasCover?: boolean; hasProfile?: boolean; services?: { id: string; nombre: string; descripcion: string }[]; products?: Product[] };
+export type Comercio = BusinessHours & { nombre: string; slug: string; telefono: string; direccion: string; ciudad: string; provincia: string; mapsUrl?: string; reviewsUrl?: string; hasCover?: boolean; hasProfile?: boolean; services?: { id: string; nombre: string; descripcion: string }[]; products?: Product[] };
 
 type Editor = { imageVersion: number; catalogVersion: number; activeTab: string; onTabChange: (tab: string) => void; onOpenMenu: () => void; onImageUpdated: (tenant: Tenant) => void; onLogout: () => void };
 
@@ -50,7 +53,7 @@ export default function BusinessProfile({ comercio, editor, publicImageVersion =
   const information = <>
     {maps && <div className="business-detail"><EnvironmentOutlined /><div><strong>Ubicación del lubricentro</strong><a href={maps} target="_blank" rel="noopener noreferrer">Ver cómo llegar</a></div></div>}
     <div className="business-detail"><PhoneOutlined /><div><a href={`tel:${comercio.telefono.replace(/[^\d+]/g, '')}`}>{comercio.telefono}</a><span>Comunicate con el comercio</span></div></div>
-    <div className="business-detail"><ClockCircleOutlined /><div><strong>Horarios de atención</strong><span>Consultá los horarios directamente con el lubricentro.</span></div></div>
+    {tab !== 'informacion' && <div className="business-detail"><ClockCircleOutlined /><div><strong>Horarios de atención</strong>{comercio.openingHours?.length || editor ? <Button type="link" size="small" style={{ padding: 0 }} onClick={() => setTab('informacion')}>Ver días y horarios</Button> : <span>Consultá los horarios directamente con el lubricentro.</span>}</div></div>}
   </>;
 
   return <ConfigProvider theme={{ token: { colorPrimary: '#155fa0', borderRadius: 10, fontSize: 16, fontFamily: 'var(--font-geist-sans), Arial, sans-serif' } }}>
@@ -69,7 +72,7 @@ export default function BusinessProfile({ comercio, editor, publicImageVersion =
         </div>
         <div className="business-identity">
           <div className="business-avatar-wrap"><div className="business-avatar"><Image src={profileSrc} alt={`Perfil de ${comercio.nombre}`} width={140} height={140} className={customProfile ? '' : 'business-default-avatar'} unoptimized={Boolean(customProfile)} onError={() => setProfileFailedVersion(imageVersion)} /></div>{editor && <ImageUpload slug={comercio.slug} kind="profile" onUpdate={editor.onImageUpdated} />}</div>
-          <div className="business-name"><span className="business-category"><ShopOutlined /> Lubricentro</span><h1>{comercio.nombre}</h1>{maps && <p><EnvironmentOutlined /> <a href={maps} target="_blank" rel="noopener noreferrer">Ver ubicación en Google Maps</a></p>}</div>
+          <div className="business-name"><span className="business-category"><ShopOutlined /> Lubricentro</span>{typeof comercio.isOpen === 'boolean' && <Tag className="business-open-status" color={comercio.isOpen ? 'green' : 'red'} style={{ marginLeft: 10 }}>{comercio.isOpen ? 'Abierto ahora' : 'Cerrado ahora'}</Tag>}<h1>{comercio.nombre}</h1>{maps && <p><EnvironmentOutlined /> <a href={maps} target="_blank" rel="noopener noreferrer">Ver ubicación en Google Maps</a></p>}</div>
           <div className="business-main-actions"><Button type="primary" icon={<WhatsAppOutlined />} href={contact} target="_blank" rel="noreferrer">Enviar mensaje</Button><Button icon={copied ? <CheckOutlined /> : <ShareAltOutlined />} onClick={share} aria-label="Compartir lubricentro">{copied ? 'Copiado' : 'Compartir'}</Button></div>
         </div>
         {shareError && <p className="business-share-error" role="alert">{shareError}</p>}
@@ -93,7 +96,7 @@ export default function BusinessProfile({ comercio, editor, publicImageVersion =
             <section className="business-card business-welcome"><div className="business-post-head"><div className="business-post-avatar">{initials}</div><div><strong>{comercio.nombre}</strong><span>Información del comercio</span></div></div><h2>Bienvenido a nuestro espacio</h2><p>Ahora podés encontrar nuestros datos de contacto en un solo lugar. Escribinos para consultar servicios, horarios o disponibilidad.</p><div className="business-welcome-art"><ShopOutlined /><div><span>EL CUIDADO QUE TU VEHÍCULO NECESITA</span><strong>Tu próxima visita<br />empieza acá.</strong></div></div><div className="business-post-footer"><MessageOutlined /> ¿Tenés una consulta? <a href={contact} target="_blank" rel="noreferrer">Hablemos por WhatsApp</a></div></section>
             <section className="business-card business-contact-strip"><div className="business-contact-icon"><ToolOutlined /></div><div><h2>Servicios del lubricentro</h2><p>Conocé qué trabajos realiza {comercio.nombre}.</p></div><Button onClick={() => setTab('servicios')}>Ver servicios</Button></section>
           </>}
-          {tab === 'informacion' && <section className="business-card"><h2><InfoCircleOutlined /> Información de {comercio.nombre}</h2><p className="business-intro">Todo lo que necesitás para comunicarte y encontrarnos.</p>{information}<Button type="primary" icon={<WhatsAppOutlined />} href={contact} target="_blank" rel="noreferrer">Consultar horarios</Button></section>}
+          {tab === 'informacion' && <section className="business-card"><h2><InfoCircleOutlined /> Información de {comercio.nombre}</h2><p className="business-intro">Todo lo que necesitás para comunicarte y encontrarnos.</p>{information}{editor ? <HoursSettings tenant={comercio} onUpdate={editor.onImageUpdated} /> : <OpeningHours hours={comercio.openingHours} />}<Button type="primary" icon={<WhatsAppOutlined />} href={contact} target="_blank" rel="noreferrer">Consultar horarios</Button></section>}
           {tab === 'productos' && <section className="business-card"><h2>Productos de {comercio.nombre}</h2>
             {editor ? <div className="business-section-empty"><p>Administrá tu catálogo desde la sección Productos del menú lateral.</p><Button type="primary" href={`/${comercio.slug}/admin/productos`} icon={<ShoppingOutlined />}>Administrar productos</Button></div> : comercio.products?.length ? <div className="business-services-grid">{comercio.products.map((product) => <article className="business-service business-product" key={product.id}><ProductPhoto slug={comercio.slug} product={product} version={imageVersion} className="product-photo-large" /><h3>{product.nombre}</h3>{product.descripcion && <p>{product.descripcion}</p>}<strong className="business-product-price">{formatPrice(product.precio)} <small>ARS</small></strong><Button icon={<WhatsAppOutlined />} href={`https://wa.me/${whatsappNumber}?text=${encodeURIComponent(`Hola ${comercio.nombre}, quisiera consultar por el producto: ${product.nombre}.`)}`} target="_blank" rel="noreferrer">Consultar producto</Button></article>)}</div> : <div className="business-section-empty"><Empty image={<ShoppingOutlined />} description={<p>Todavía no hay productos publicados. Podés consultar disponibilidad y precios directamente con el lubricentro.</p>}><Button type="primary" icon={<WhatsAppOutlined />} href={productContact} target="_blank" rel="noreferrer">Consultar productos</Button></Empty></div>}
           </section>}

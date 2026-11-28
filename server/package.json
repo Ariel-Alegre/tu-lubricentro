@@ -13,6 +13,7 @@
     "test:customers": "node --test tests/customers.test.cjs",
     "test:reviews": "node --test tests/reviews.test.cjs",
     "test:location": "node --test tests/location.test.cjs",
+    "test:hours": "node --test tests/opening-hours.test.cjs",
     "test": "mocha -w ./tests/**/*.spec.js"
   },
   "author": "ELARITECH",
