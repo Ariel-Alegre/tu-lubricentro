@@ -44,6 +44,7 @@ async function database() {
     ALTER TABLE panel_lubricentros ADD COLUMN IF NOT EXISTS google_maps_url TEXT NOT NULL DEFAULT '';
     ALTER TABLE panel_lubricentros ADD COLUMN IF NOT EXISTS opening_hours JSONB NOT NULL DEFAULT '[]';
     ALTER TABLE panel_lubricentros ADD COLUMN IF NOT EXISTS business_open BOOLEAN;
+    ALTER TABLE panel_lubricentros ADD COLUMN IF NOT EXISTS temporarily_closed BOOLEAN NOT NULL DEFAULT FALSE;
     CREATE TABLE IF NOT EXISTS lubricentro_servicios (
       id UUID PRIMARY KEY,
       lubricentro_id UUID NOT NULL REFERENCES panel_lubricentros(id) ON DELETE CASCADE,
@@ -68,7 +69,7 @@ async function database() {
   return pool;
 }
 
-const PUBLIC_COLUMNS = 'id, nombre, slug, email, telefono, direccion, ciudad, provincia, responsable, estado, opening_hours AS "openingHours", google_reviews_url AS "reviewsUrl", google_maps_url AS "mapsUrl", fecha_alta AS "fechaAlta", (cover_image_key IS NOT NULL OR cover_image IS NOT NULL) AS "hasCover", (profile_image_key IS NOT NULL OR profile_image IS NOT NULL) AS "hasProfile"';
+const PUBLIC_COLUMNS = 'id, nombre, slug, email, telefono, direccion, ciudad, provincia, responsable, estado, opening_hours AS "openingHours", temporarily_closed AS "temporarilyClosed", google_reviews_url AS "reviewsUrl", google_maps_url AS "mapsUrl", fecha_alta AS "fechaAlta", (cover_image_key IS NOT NULL OR cover_image IS NOT NULL) AS "hasCover", (profile_image_key IS NOT NULL OR profile_image IS NOT NULL) AS "hasProfile"';
 const PRODUCT_COLUMNS = 'id, nombre, descripcion, precio, stock, image_key IS NOT NULL AS "hasImage"';
 
 async function transaction(work) {
@@ -79,6 +80,10 @@ async function transaction(work) {
 }
 
 module.exports = {
+  async setTemporarilyClosed(account, closed) {
+    return (await (await database()).query(`UPDATE panel_lubricentros SET temporarily_closed=$1
+      WHERE id=$2 AND estado='Activo' AND auth_version=$3 RETURNING ${PUBLIC_COLUMNS}`, [closed, account.id, account.auth_version])).rows[0];
+  },
   async saveOpeningHours(account, openingHours) {
     return (await (await database()).query(`UPDATE panel_lubricentros SET opening_hours=$1::jsonb, business_open=NULL
       WHERE id=$2 AND estado='Activo' AND auth_version=$3 RETURNING ${PUBLIC_COLUMNS}`, [JSON.stringify(openingHours), account.id, account.auth_version])).rows[0];
@@ -165,7 +170,7 @@ module.exports = {
     return (await (await database()).query(`SELECT ${PUBLIC_COLUMNS} FROM panel_lubricentros ORDER BY fecha_alta DESC`)).rows;
   },
   async findBySlug(slug) {
-    return (await (await database()).query(`SELECT nombre, slug, telefono, direccion, ciudad, provincia, opening_hours AS "openingHours", google_reviews_url AS "reviewsUrl", google_maps_url AS "mapsUrl", (cover_image_key IS NOT NULL OR cover_image IS NOT NULL) AS "hasCover", (profile_image_key IS NOT NULL OR profile_image IS NOT NULL) AS "hasProfile" FROM panel_lubricentros WHERE slug=$1 AND estado='Activo'`, [slug])).rows[0];
+    return (await (await database()).query(`SELECT nombre, slug, telefono, direccion, ciudad, provincia, opening_hours AS "openingHours", temporarily_closed AS "temporarilyClosed", google_reviews_url AS "reviewsUrl", google_maps_url AS "mapsUrl", (cover_image_key IS NOT NULL OR cover_image IS NOT NULL) AS "hasCover", (profile_image_key IS NOT NULL OR profile_image IS NOT NULL) AS "hasProfile" FROM panel_lubricentros WHERE slug=$1 AND estado='Activo'`, [slug])).rows[0];
   },
   async findAccountBySlug(slug) {
     return (await (await database()).query(`SELECT ${PUBLIC_COLUMNS}, password_hash, auth_version FROM panel_lubricentros WHERE slug=$1`, [slug])).rows[0];

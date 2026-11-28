@@ -4,7 +4,7 @@ import { startTransition, useEffect, useState } from 'react';
 import { businessStatusAt, type BusinessHours } from '../lib/opening-hours';
 import './business-status.css';
 
-export default function BusinessStatus({ openingHours = [] }: BusinessHours) {
+export default function BusinessStatus({ openingHours = [], temporarilyClosed = false }: BusinessHours) {
   const [now, setNow] = useState<Date | null>(null);
   useEffect(() => {
     if (!openingHours.length) return;
@@ -24,8 +24,8 @@ export default function BusinessStatus({ openingHours = [] }: BusinessHours) {
     return () => { clearTimeout(timer); window.removeEventListener('focus', updateClock); document.removeEventListener('visibilitychange', visible); };
   }, [openingHours.length]);
 
-  if (!now) return null;
-  const { ranges, isOpen } = businessStatusAt(openingHours, now);
+  if (!now && !temporarilyClosed) return null;
+  const { ranges, isOpen } = now ? businessStatusAt(openingHours, now, temporarilyClosed) : { ranges: [], isOpen: false };
   if (typeof isOpen !== 'boolean') return null;
   const hours = `Hoy: ${ranges.map((range) => `de ${range.from} a ${range.to}`).join(' y ')}`;
   return <div className="business-status-summary" aria-live="polite">

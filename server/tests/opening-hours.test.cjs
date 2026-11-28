@@ -27,6 +27,7 @@ test('horarios: persistencia PostgreSQL, validación semanal, sin estado manual 
     const base = `http://127.0.0.1:${server.address().port}`;
     const tokens = accounts.map((a) => signAccount(a));
     const req = (body, token = tokens[0]) => fetch(base + '/api/tenant/el-cano/hours', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify(body) });
+    const availability = (temporarilyClosed, token = tokens[0]) => fetch(base + '/api/tenant/el-cano/availability', { method: 'POST', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) }, body: JSON.stringify({ temporarilyClosed }) });
     async function socket(namespace, auth, readyEvent) {
       const s = connect(base + namespace, { auth, transports: ['websocket'], autoConnect: false, reconnection: false }); sockets.push(s);
       const ready = once(s, readyEvent, { signal: AbortSignal.timeout(5000) }); s.connect(); await ready; return s;
@@ -53,7 +54,22 @@ test('horarios: persistencia PostgreSQL, validación semanal, sin estado manual 
     assert.equal((await store.findBySlug('el-cano')).isOpen, undefined);
     assert.equal((await db.query('SELECT business_open FROM panel_lubricentros WHERE id=$1', [accounts[0].id])).rows[0].business_open, null);
     assert.deepEqual((await store.findBySlug('lorenzo')).openingHours, []); assert.equal(otherChanges, 0);
+    assert.equal((await availability(true, null)).status, 401);
+    assert.equal((await availability(true, tokens[1])).status, 403);
+    for (const value of [undefined, null, 'false', 1]) assert.equal((await availability(value)).status, 400);
+    const closureChanged = once(publicSocket, 'profile:changed', { signal: AbortSignal.timeout(5000) });
+    response = await availability(true); assert.equal(response.status, 200); assert.equal((await response.json()).temporarilyClosed, true); await closureChanged;
+    assert.equal((await store.findBySlug('el-cano')).temporarilyClosed, true);
+    assert.equal((await store.findBySlug('lorenzo')).temporarilyClosed, false);
+    assert.equal((await store.findAccountById(accounts[0].id)).estado, 'Activo');
+    assert.equal((await req(body)).status, 200);
+    assert.equal((await store.findBySlug('el-cano')).temporarilyClosed, true, 'editar horarios no cancela el cierre excepcional');
+    assert.equal((await availability(false)).status, 200);
+    assert.equal((await store.findBySlug('el-cano')).temporarilyClosed, false);
+    assert.deepEqual((await store.findBySlug('el-cano')).openingHours, week());
+    assert.equal((await store.findAccountById(accounts[0].id)).auth_version, accounts[0].auth_version);
     await store.updateStatus(accounts[0].id, 'Inactivo'); assert.equal((await req(body)).status, 403);
+    assert.equal((await availability(true)).status, 403);
     assert.equal(await store.saveOpeningHours(accounts[0], week()), undefined);
   } finally {
     sockets.forEach((s) => s.disconnect()); await new Promise((resolve) => realtime.close(resolve)); Object.defineProperty(pg, 'Pool', descriptor); delete require.cache[modulePath];

@@ -31,6 +31,16 @@ router.use('/:slug/customers', require('./customers'));
 
 router.get('/:slug/session', requireTenant, (req, res) => res.set('Cache-Control', 'no-store').json(publicAccount(req.tenant)));
 router.post('/:slug/socket', requireTenant, (req, res) => res.set('Cache-Control', 'no-store').json({ ticket: signAccount(req.tenant, true) }));
+router.post('/:slug/availability', requireTenant, async (req, res) => {
+  const closed = req.body?.temporarilyClosed;
+  if (typeof closed !== 'boolean') return res.status(400).json({ message: 'Elegí cerrar ahora o volver al horario automático' });
+  try {
+    const account = await store.setTemporarilyClosed(req.tenant, closed);
+    if (!account) return res.status(403).json({ message: 'Tu acceso cambió. Volvé a iniciar sesión.' });
+    publishProfileChange(req.tenant.id, req.tenant.slug);
+    res.set('Cache-Control', 'no-store').json(account);
+  } catch { res.status(503).json({ message: 'No se pudo actualizar el estado del lubricentro' }); }
+});
 router.post('/:slug/hours', requireTenant, async (req, res) => {
   let openingHours;
   try { openingHours = normalizeHours(req.body?.openingHours); }

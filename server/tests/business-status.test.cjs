@@ -17,4 +17,7 @@ test('estado automático: límites exactos, pausa, días cerrados y fecha en Arg
   assert.equal(afterMidnight.day, 'martes'); assert.equal(afterMidnight.isOpen, false);
   assert.equal(businessStatusAt(hours, new Date('2026-11-24T13:00:00Z')).isOpen, false);
   assert.equal(businessStatusAt([], new Date('2026-11-23T13:00:00Z')).isOpen, null);
+  assert.equal(businessStatusAt(hours, new Date('2026-11-23T13:00:00Z'), true).isOpen, false, 'cerrar ahora prevalece sobre un horario abierto');
+  assert.equal(businessStatusAt(hours, new Date('2026-11-23T13:00:00Z'), false).isOpen, true, 'volver a automático retoma el horario');
+  assert.equal(businessStatusAt([], new Date('2026-11-23T13:00:00Z'), true).isOpen, false, 'se puede cerrar aunque aún no haya horarios publicados');
 });

@@ -2,6 +2,11 @@
 .tenant-hours-settings h3 { margin: 0 0 12px; font-size: 20px; font-weight: 650; }
 .tenant-hours-settings > p { margin: 0 0 20px; font-size: 14px; line-height: 1.7; color: #718096; }
 .tenant-hours-settings > .ant-alert { margin-bottom: 20px; }
+.tenant-hours-availability { padding: 18px; margin-bottom: 24px; border: 1px solid #dce7f2; border-radius: 12px; background: #f7faff; }
+.tenant-hours-availability > strong { display: block; color: #34475e; font-size: 15px; }
+.tenant-hours-availability > p { margin: 8px 0 16px; color: #718096; font-size: 14px; line-height: 1.7; }
+.tenant-hours-availability > .ant-alert { margin-bottom: 16px; }
+.tenant-hours-availability .ant-btn { max-width: 100%; height: auto; white-space: normal; }
 .tenant-hours-week { display: grid; gap: 12px; margin-bottom: 24px; }
 .tenant-hours-day { padding: 16px; border: 1px solid #e2e8ef; border-radius: 12px; min-width: 0; }
 .tenant-hours-day-heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }

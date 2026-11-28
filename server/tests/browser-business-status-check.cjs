@@ -47,6 +47,12 @@ const assert = require('node:assert/strict');
     await wait('document.querySelector(".business-open-status")?.textContent==="Cerrado ahora"');
     await clock('2026-11-23T14:00:00Z');
     await wait('document.querySelector(".business-today-hours")?.textContent==="Hoy: de 11:00 a 18:00"');
+    assert.equal((await req('/api/tenant/el-cano/availability', { temporarilyClosed: true }, token)).status, 200);
+    await wait('document.querySelector(".business-open-status")?.textContent==="Cerrado ahora"');
+    await req('/api/tenant/el-cano/hours', { openingHours: changed }, token);
+    assert.equal(await ev('document.querySelector(".business-open-status").textContent'), 'Cerrado ahora');
+    assert.equal((await req('/api/tenant/el-cano/availability', { temporarilyClosed: false }, token)).status, 200);
+    await wait('document.querySelector(".business-open-status")?.textContent==="Abierto ahora"');
     for (const width of [390, 360]) { await call('Emulation.setDeviceMetricsOverride', { width, height: 844, deviceScaleFactor: 1, mobile: false }); assert.equal(await ev('document.documentElement.scrollWidth<=innerWidth'), true); }
     await clock('2026-11-24T14:00:00Z');
     await wait('document.querySelector(".business-open-status")?.textContent==="Cerrado ahora" && !document.querySelector(".business-today-hours")');

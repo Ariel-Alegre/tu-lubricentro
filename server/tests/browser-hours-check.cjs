@@ -47,6 +47,17 @@ const assert = require('node:assert/strict');
     await admin.wait('document.querySelectorAll("[data-day=lunes] input[type=time]").length===4');
     assert.equal(await admin.ev('document.querySelectorAll("[data-day=lunes] input[type=time]")[2].value'), '16:00');
     assert.equal(await admin.ev('document.querySelectorAll(".tenant-hours-settings input[type=radio]").length'), 0);
+    await value('[aria-label="Lunes: apertura 1"]', '10:00');
+    await admin.ev('document.querySelector(".tenant-availability-button").click()');
+    await admin.wait('document.querySelector(".tenant-availability-button")?.textContent.includes("Volver al horario automático")');
+    await profile.wait('document.querySelector(".business-open-status")?.textContent==="Cerrado ahora"');
+    assert.equal(await admin.ev('document.querySelectorAll("[data-day=lunes] input[type=time]")[0].value'), '10:00', 'cerrar no borra un horario sin guardar');
+    await admin.call('Page.bringToFront'); await admin.call('Page.reload'); await admin.wait('Boolean(document.querySelector(".tenant-shell:not([hidden])"))'); await information(admin);
+    await admin.wait('document.querySelector(".tenant-availability-button")?.textContent.includes("Volver al horario automático")');
+    await admin.ev('document.querySelector(".tenant-availability-button").click()');
+    await admin.wait('document.querySelector(".tenant-availability-button")?.textContent.includes("Cerrar ahora")');
+    await admin.wait('document.querySelectorAll("[data-day=lunes] input[type=time]").length===4');
+    assert.equal(await admin.ev('document.querySelectorAll("[data-day=lunes] input[type=time]")[0].value'), '09:00', 'los horarios guardados se conservan');
     for (const client of [admin, profile]) { await client.call('Emulation.setDeviceMetricsOverride', { width: 390, height: 844, deviceScaleFactor: 1, mobile: false }); assert.equal(await client.ev('document.documentElement.scrollWidth<=innerWidth'), true); }
     assert.equal(await profile.ev('window.__sameProfile'), true);
     console.log('PASS: Información permite días y turnos, sin estado manual; validación, persistencia, socket y móvil sin desbordes.');
