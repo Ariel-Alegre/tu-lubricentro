@@ -1,0 +1,4 @@
+.business-status-summary { display: flex; flex-direction: column; align-items: flex-start; gap: 5px; min-width: 0; margin-block: 7px; }
+.business-open-status { display: inline-flex; padding: 3px 9px; border: 1px solid #b7eb8f; border-radius: 7px; background: #f6ffed; color: #237804; font-size: 13px; line-height: 1.5; font-weight: 650; }
+.business-open-status[data-open="false"] { color: #a61d24; background: #fff1f0; border-color: #ffa39e; }
+.business-today-hours { color: #607087; font-size: 13px; line-height: 1.6; overflow-wrap: anywhere; }

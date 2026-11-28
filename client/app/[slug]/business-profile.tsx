@@ -2,7 +2,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useState } from 'react';
-import { Button, ConfigProvider, Empty, Tabs, Tag } from 'antd';
+import { Button, ConfigProvider, Empty, Tabs } from 'antd';
 import { CalendarOutlined, ClockCircleOutlined, EnvironmentOutlined, InfoCircleOutlined, HistoryOutlined, LogoutOutlined, EyeOutlined, MenuOutlined, MessageOutlined, PhoneOutlined, ShopOutlined, ShoppingOutlined, WhatsAppOutlined, ToolOutlined, ShareAltOutlined, CheckOutlined } from '@ant-design/icons';
 import ImageUpload from './admin/image-upload';
 import ServiceSettings from './admin/service-settings';
@@ -13,6 +13,7 @@ import LocationSettings from './admin/location-settings';
 import HoursSettings from './admin/hours-settings';
 import OpeningHours from '../components/opening-hours';
 import type { BusinessHours } from '../lib/opening-hours';
+import BusinessStatus from '../components/business-status';
 
 export type Comercio = BusinessHours & { nombre: string; slug: string; telefono: string; direccion: string; ciudad: string; provincia: string; mapsUrl?: string; reviewsUrl?: string; hasCover?: boolean; hasProfile?: boolean; services?: { id: string; nombre: string; descripcion: string }[]; products?: Product[] };
 
@@ -72,7 +73,7 @@ export default function BusinessProfile({ comercio, editor, publicImageVersion =
         </div>
         <div className="business-identity">
           <div className="business-avatar-wrap"><div className="business-avatar"><Image src={profileSrc} alt={`Perfil de ${comercio.nombre}`} width={140} height={140} className={customProfile ? '' : 'business-default-avatar'} unoptimized={Boolean(customProfile)} onError={() => setProfileFailedVersion(imageVersion)} /></div>{editor && <ImageUpload slug={comercio.slug} kind="profile" onUpdate={editor.onImageUpdated} />}</div>
-          <div className="business-name"><span className="business-category"><ShopOutlined /> Lubricentro</span>{typeof comercio.isOpen === 'boolean' && <Tag className="business-open-status" color={comercio.isOpen ? 'green' : 'red'} style={{ marginLeft: 10 }}>{comercio.isOpen ? 'Abierto ahora' : 'Cerrado ahora'}</Tag>}<h1>{comercio.nombre}</h1>{maps && <p><EnvironmentOutlined /> <a href={maps} target="_blank" rel="noopener noreferrer">Ver ubicación en Google Maps</a></p>}</div>
+          <div className="business-name"><span className="business-category"><ShopOutlined /> Lubricentro</span><div className="business-name-heading"><h1>{comercio.nombre}</h1><BusinessStatus isOpen={comercio.isOpen} openingHours={comercio.openingHours} /></div>{maps && <p><EnvironmentOutlined /> <a className="business-maps-link" href={maps} target="_blank" rel="noopener noreferrer">Ver ubicación en Google Maps</a></p>}</div>
           <div className="business-main-actions"><Button type="primary" icon={<WhatsAppOutlined />} href={contact} target="_blank" rel="noreferrer">Enviar mensaje</Button><Button icon={copied ? <CheckOutlined /> : <ShareAltOutlined />} onClick={share} aria-label="Compartir lubricentro">{copied ? 'Copiado' : 'Compartir'}</Button></div>
         </div>
         {shareError && <p className="business-share-error" role="alert">{shareError}</p>}
